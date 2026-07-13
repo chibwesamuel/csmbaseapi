@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.config import settings
+from pulseapi.app.core.config import settings
 
 
 app = FastAPI(
