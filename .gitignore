@@ -2,6 +2,7 @@
 __pycache__/
 *.py[codz]
 *$py.class
+*.py[cod]
 
 # C extensions
 *.so
@@ -54,6 +55,12 @@ cover/
 # Translations
 *.mo
 *.pot
+
+# IDE
+.vscode/
+
+# Testing
+.pytest_cache/
 
 # Django stuff:
 *.log
@@ -156,6 +163,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# OS
+.DS_Store
 
 # Spyder project settings
 .spyderproject
