@@ -1,12 +1,17 @@
+from collections.abc import Generator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
+
 
 engine = create_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
+    pool_pre_ping=True,
 )
+
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -14,12 +19,15 @@ SessionLocal = sessionmaker(
     bind=engine,
 )
 
-def get_db():
+
+def get_db() -> Generator[Session, None, None]:
     """
     Dependency that provides a database session for each request.
     """
     db = SessionLocal()
+
     try:
         yield db
+
     finally:
         db.close()

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Database (we will use these in Docker/PostgreSQL)
     DATABASE_URL: str
 
+    # Alembic local migration database URL
+    ALEMBIC_DATABASE_URL: str | None = None
+
     # Security (we will use this during JWT authentication)
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
