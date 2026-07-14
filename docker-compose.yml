@@ -1,0 +1,58 @@
+services:
+
+  api:
+    build: .
+    
+    container_name: pulseapi-api
+
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - .:/app
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      APP_NAME: ${APP_NAME}
+      ENVIRONMENT: ${ENVIRONMENT}
+
+    depends_on:
+      - db
+
+    networks:
+      - pulseapi-network
+
+
+  db:
+    image: postgres:16
+
+    container_name: pulseapi-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    networks:
+      - pulseapi-network
+
+
+volumes:
+
+  postgres_data:
+
+
+networks:
+
+  pulseapi-network:
+    external: true
