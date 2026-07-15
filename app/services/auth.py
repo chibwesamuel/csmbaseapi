@@ -11,6 +11,7 @@ from app.repositories.user import (
 )
 
 from app.schemas.user import UserCreate
+from app.core.exceptions import email_already_registered
 
 
 def register_user(
@@ -24,9 +25,7 @@ def register_user(
     )
 
     if existing_user:
-        raise ValueError(
-            "Email already registered"
-        )
+        email_already_registered()
 
     hashed_password = hash_password(
         user_data.password
