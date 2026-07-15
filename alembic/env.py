@@ -31,8 +31,11 @@ config.set_main_option(
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+from app.database.base import Base
 
-# SQLAlchemy metadata for autogenerate
+# Import models so Alembic can discover them
+from app.models.user import User
+
 target_metadata = Base.metadata
 
 
