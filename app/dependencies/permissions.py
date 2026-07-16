@@ -50,3 +50,4 @@ def require_superuser(
         )
 
     return current_user
+    
