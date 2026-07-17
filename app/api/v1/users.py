@@ -30,6 +30,10 @@ def read_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
+    """
+    Retrieve all users.
+    """
+
     return list_users(db)
 
 
@@ -42,6 +46,9 @@ def read_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
+    """
+    Retrieve a single user.
+    """
 
     user = get_user(
         db,
@@ -53,6 +60,9 @@ def read_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+
+    return user
+
 
 @router.put(
     "/{user_id}",
@@ -80,12 +90,22 @@ def update_existing_user(
             detail="User not found",
         )
 
-@router.patch("/{user_id}/deactivate")
+    return user
+
+
+@router.patch(
+    "/{user_id}/deactivate",
+    response_model=UserResponse,
+)
 def deactivate_user(
     user_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
+    """
+    Deactivate a user account.
+    """
+
     user = change_user_status(
         db,
         user_id,
@@ -98,12 +118,22 @@ def deactivate_user(
             detail="User not found",
         )
 
-@router.patch("/{user_id}/activate")
+    return user
+
+
+@router.patch(
+    "/{user_id}/activate",
+    response_model=UserResponse,
+)
 def activate_user(
     user_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
+    """
+    Activate a user account.
+    """
+
     user = change_user_status(
         db,
         user_id,
@@ -116,12 +146,21 @@ def activate_user(
             detail="User not found",
         )
 
-@router.delete("/{user_id}")
+    return user
+
+
+@router.delete(
+    "/{user_id}",
+)
 def remove_user(
     user_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
+    """
+    Delete a user account.
+    """
+
     deleted = delete_user(
         db,
         user_id,
@@ -136,5 +175,3 @@ def remove_user(
     return {
         "message": "User deleted successfully"
     }
-
-    return user
