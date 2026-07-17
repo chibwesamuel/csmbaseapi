@@ -24,6 +24,19 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class UserUpdate(BaseModel):
+    """
+    Data used to update an existing user.
+    """
+
+    email: EmailStr | None = None
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+
+    is_active: bool | None = None
+    is_verified: bool | None = None
+    is_superuser: bool | None = None
 
 class UserResponse(BaseModel):
     """

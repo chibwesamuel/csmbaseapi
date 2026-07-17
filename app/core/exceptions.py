@@ -16,3 +16,12 @@ def invalid_credentials():
             "WWW-Authenticate": "Bearer"
         },
     )
+
+class EmailAlreadyRegistered(Exception):
+    """
+    Raised when attempting to use an email
+    that already exists.
+    """
+
+    def __init__(self):
+        self.message = "Email already registered"
