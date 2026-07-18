@@ -62,20 +62,10 @@ class UserResponse(BaseModel):
     )
 
 
-class TokenResponse(BaseModel):
+class Token(BaseModel):
     """
     JWT response.
     """
 
     access_token: str
     token_type: str = "bearer"
-
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str

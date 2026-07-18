@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.dependencies.permissions import require_superuser
 from app.models.user import User
-from app.schemas.user import UserResponse, UserUpdate
+from app.schemas.user import UserResponse, UserUpdate, UserCreate
 from app.services.user import (
     list_users,
     get_user,
     update_user,
+    create_user,
     change_user_status,
     delete_user,
 )
@@ -175,3 +176,29 @@ def remove_user(
     return {
         "message": "User deleted successfully"
     }
+
+@router.post(
+    "/",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_new_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_superuser),
+):
+    """
+    Create a new user.
+    """
+
+    try:
+        return create_user(
+            db,
+            user_data,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        )

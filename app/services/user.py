@@ -7,7 +7,11 @@ from app.repositories.user import (
     update_user as update_user_repository,
     update_user_status,
     delete_user as delete_user_repository,
+    get_user_by_username,
+    create_user as create_user_repository,
 )
+from app.core.security import hash_password
+from app.schemas.user import UserCreate
 
 from app.schemas.user import UserUpdate
 from app.core.exceptions import EmailAlreadyRegistered
@@ -28,6 +32,46 @@ def get_user(
         user_id,
     )
 
+def create_user(
+    db: Session,
+    user_data: UserCreate,
+):
+    """
+    Create a new user.
+    """
+
+    existing_email = get_user_by_email(
+        db,
+        user_data.email,
+    )
+
+    if existing_email:
+        raise ValueError(
+            "Email already registered"
+        )
+
+
+    existing_username = get_user_by_username(
+        db,
+        user_data.username,
+    )
+
+    if existing_username:
+        raise ValueError(
+            "Username already taken"
+        )
+
+
+    hashed_password = hash_password(
+        user_data.password
+    )
+
+
+    return create_user_repository(
+        db,
+        user_data,
+        hashed_password,
+    )
 
 def update_user(
     db: Session,
