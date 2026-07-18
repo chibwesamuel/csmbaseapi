@@ -69,3 +69,17 @@ class Token(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
+
+class PaginatedUsersResponse(BaseModel):
+    """
+    Paginated user response.
+    """
+
+    total: int
+    skip: int
+    limit: int
+    users: list[UserResponse]
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )

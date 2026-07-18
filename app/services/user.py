@@ -2,13 +2,16 @@ from sqlalchemy.orm import Session
 
 from app.repositories.user import (
     get_all_users,
+    get_users,
+    count_users,
     get_user_by_id,
     get_user_by_email,
-    update_user as update_user_repository,
-    update_user_status,
-    delete_user as delete_user_repository,
     get_user_by_username,
     create_user as create_user_repository,
+    update_user as update_user_repository,
+    update_user_status as update_user_status_repository,
+    delete_user as delete_user_repository,
+    update_user_status,
 )
 from app.core.security import hash_password
 from app.schemas.user import UserCreate
@@ -19,8 +22,28 @@ from app.core.exceptions import EmailAlreadyRegistered
 
 def list_users(
     db: Session,
+    skip: int = 0,
+    limit: int = 10,
+    search: str | None = None,
 ):
-    return get_all_users(db)
+    users = get_users(
+        db,
+        skip,
+        limit,
+        search,
+    )
+
+    total = count_users(
+        db,
+        search,
+    )
+
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "users": users,
+    }
 
 
 def get_user(

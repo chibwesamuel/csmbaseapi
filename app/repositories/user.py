@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -32,7 +33,69 @@ def get_user_by_username(
 def get_all_users(
     db: Session,
 ):
+    """
+    Return all users.
+    Compatibility function used by user service.
+    """
+
     return db.query(User).all()
+
+
+def get_users(
+    db: Session,
+    skip: int = 0,
+    limit: int = 10,
+    search: str | None = None,
+):
+    """
+    Paginated user listing with optional search.
+    """
+
+    query = db.query(User)
+
+    if search:
+        search_term = f"%{search}%"
+
+        query = query.filter(
+            or_(
+                User.email.ilike(search_term),
+                User.username.ilike(search_term),
+                User.first_name.ilike(search_term),
+                User.last_name.ilike(search_term),
+            )
+        )
+
+    return (
+        query
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def count_users(
+    db: Session,
+    search: str | None = None,
+):
+    """
+    Count users with optional search.
+    """
+
+    query = db.query(User)
+
+    if search:
+        search_term = f"%{search}%"
+
+        query = query.filter(
+            or_(
+                User.email.ilike(search_term),
+                User.username.ilike(search_term),
+                User.first_name.ilike(search_term),
+                User.last_name.ilike(search_term),
+            )
+        )
+
+    return query.count()
 
 
 def get_user_by_id(
@@ -108,6 +171,7 @@ def update_user_status(
     db.refresh(user)
 
     return user
+
 
 def delete_user(
     db: Session,

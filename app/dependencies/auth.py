@@ -57,10 +57,10 @@ def get_current_user(
             },
         )
 
-    if not user.is_active:
+    if not user.is_active and not user.is_superuser:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user",
+            status_code=400,
+            detail="Inactive user"
         )
 
     return user

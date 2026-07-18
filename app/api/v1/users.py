@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.dependencies.permissions import require_superuser
 from app.models.user import User
-from app.schemas.user import UserResponse, UserUpdate, UserCreate
+from app.schemas.user import (
+    UserResponse,
+    UserUpdate,
+    UserCreate,
+    PaginatedUsersResponse,
+)
+
 from app.services.user import (
     list_users,
     get_user,
@@ -25,17 +31,21 @@ router = APIRouter(
 
 @router.get(
     "/",
-    response_model=List[UserResponse],
+    response_model=PaginatedUsersResponse,
 )
 def read_users(
+    skip: int = 0,
+    limit: int = 10,
+    search: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
-    """
-    Retrieve all users.
-    """
-
-    return list_users(db)
+    return list_users(
+        db,
+        skip,
+        limit,
+        search,
+    )
 
 
 @router.get(
