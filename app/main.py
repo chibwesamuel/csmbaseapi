@@ -5,6 +5,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.users import router as users_router
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from app.api.v1.roles import router as roles_router
 
 from app.core.exceptions import EmailAlreadyRegistered
 
@@ -29,6 +30,8 @@ def email_exists_exception_handler(
 app.include_router(auth_router)
 
 app.include_router(users_router)
+
+app.include_router(roles_router)
 
 @app.get("/")
 def root():
