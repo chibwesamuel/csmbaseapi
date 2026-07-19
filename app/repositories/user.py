@@ -1,7 +1,11 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import (
+    UserCreate,
+    UserUpdate,
+)
 
 
 def get_user_by_email(
@@ -26,6 +30,85 @@ def get_user_by_username(
     )
 
 
+def get_all_users(
+    db: Session,
+):
+    """
+    Return all users.
+    Compatibility function used by user service.
+    """
+
+    return db.query(User).all()
+
+
+def get_users(
+    db: Session,
+    skip: int = 0,
+    limit: int = 10,
+    search: str | None = None,
+):
+    """
+    Paginated user listing with optional search.
+    """
+
+    query = db.query(User)
+
+    if search:
+        search_term = f"%{search}%"
+
+        query = query.filter(
+            or_(
+                User.email.ilike(search_term),
+                User.username.ilike(search_term),
+                User.first_name.ilike(search_term),
+                User.last_name.ilike(search_term),
+            )
+        )
+
+    return (
+        query
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def count_users(
+    db: Session,
+    search: str | None = None,
+):
+    """
+    Count users with optional search.
+    """
+
+    query = db.query(User)
+
+    if search:
+        search_term = f"%{search}%"
+
+        query = query.filter(
+            or_(
+                User.email.ilike(search_term),
+                User.username.ilike(search_term),
+                User.first_name.ilike(search_term),
+                User.last_name.ilike(search_term),
+            )
+        )
+
+    return query.count()
+
+
+def get_user_by_id(
+    db: Session,
+    user_id,
+):
+    return (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
+
+
 def create_user(
     db: Session,
     user_data: UserCreate,
@@ -45,3 +128,60 @@ def create_user(
     db.refresh(user)
 
     return user
+
+
+def update_user(
+    db: Session,
+    user: User,
+    user_data: UserUpdate,
+) -> User:
+    """
+    Update an existing user.
+    """
+
+    update_data = user_data.model_dump(
+        exclude_unset=True
+    )
+
+    for field, value in update_data.items():
+        setattr(
+            user,
+            field,
+            value,
+        )
+
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+def update_user_status(
+    db: Session,
+    user: User,
+    is_active: bool,
+):
+    """
+    Update user active status.
+    """
+
+    user.is_active = is_active
+
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+def delete_user(
+    db: Session,
+    user: User,
+):
+    """
+    Delete a user from the database.
+    """
+
+    db.delete(user)
+    db.commit()
+
+    return True

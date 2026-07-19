@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 
 from app.database.base import Base
+from sqlalchemy.orm import relationship
 
 
 class User(Base):
@@ -83,4 +84,10 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    roles = relationship(
+        "Role",
+        secondary="user_roles",
+        back_populates="users",
     )

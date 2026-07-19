@@ -31,10 +31,14 @@ config.set_main_option(
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-from app.database.base import Base
 
 # Import models so Alembic can discover them
 from app.models.user import User
+from app.models.role import Role
+from app.models.permission import Permission
+from app.models.role_permission import role_permissions
+from app.models.user_role import UserRole
+
 
 target_metadata = Base.metadata
 

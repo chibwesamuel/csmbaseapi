@@ -25,14 +25,31 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserUpdate(BaseModel):
+    """
+    Data used to update an existing user.
+    """
+
+    email: EmailStr | None = None
+    username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+
+    is_active: bool | None = None
+    is_verified: bool | None = None
+    is_superuser: bool | None = None
+
+
 class UserResponse(BaseModel):
     """
     User data returned to clients.
     """
 
     id: UUID
+
     email: EmailStr
     username: str
+
     first_name: str
     last_name: str
 
@@ -43,13 +60,14 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    roles: list["RoleResponse"] = []
 
     model_config = ConfigDict(
         from_attributes=True
     )
 
 
-class TokenResponse(BaseModel):
+class Token(BaseModel):
     """
     JWT response.
     """
@@ -58,11 +76,22 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+class PaginatedUsersResponse(BaseModel):
+    """
+    Paginated user response.
+    """
+
+    total: int
+    skip: int
+    limit: int
+    users: list[UserResponse]
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+# Import at the bottom to avoid circular imports
+from app.schemas.role import RoleResponse
+
+UserResponse.model_rebuild()

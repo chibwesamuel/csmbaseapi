@@ -11,7 +11,6 @@ from app.schemas.user import (
     UserCreate,
     UserResponse,
     UserLogin,
-    TokenResponse,
     Token,
 )
 
@@ -78,7 +77,7 @@ def login(
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=Token,
 )
 def login(
     credentials: UserLogin,
