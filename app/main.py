@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.api.v1.auth import router as auth_router
 from app.api.v1.users import router as users_router
+from app.api.v1.role_permissions import router as role_permissions_router
+from app.api.v1.user_roles import router as user_roles_router
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from app.api.v1.roles import router as roles_router
@@ -35,6 +37,11 @@ app.include_router(users_router)
 app.include_router(roles_router)
 
 app.include_router(permissions_router)
+
+app.include_router(role_permissions_router)
+
+app.include_router(user_roles_router)
+
 
 @app.get("/")
 def root():

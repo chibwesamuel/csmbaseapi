@@ -24,6 +24,7 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+
 class UserUpdate(BaseModel):
     """
     Data used to update an existing user.
@@ -38,14 +39,17 @@ class UserUpdate(BaseModel):
     is_verified: bool | None = None
     is_superuser: bool | None = None
 
+
 class UserResponse(BaseModel):
     """
     User data returned to clients.
     """
 
     id: UUID
+
     email: EmailStr
     username: str
+
     first_name: str
     last_name: str
 
@@ -56,6 +60,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    roles: list["RoleResponse"] = []
 
     model_config = ConfigDict(
         from_attributes=True
@@ -70,6 +75,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 class PaginatedUsersResponse(BaseModel):
     """
     Paginated user response.
@@ -83,3 +89,9 @@ class PaginatedUsersResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+# Import at the bottom to avoid circular imports
+from app.schemas.role import RoleResponse
+
+UserResponse.model_rebuild()

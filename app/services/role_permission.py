@@ -20,12 +20,15 @@ def assign_permission(
         role_id,
     )
 
+    if not role:
+        return None
+
     permission = get_permission_by_id(
         db,
         permission_id,
     )
 
-    if not role or not permission:
+    if not permission:
         return None
 
     return add_permission_to_role(
@@ -45,12 +48,15 @@ def revoke_permission(
         role_id,
     )
 
+    if not role:
+        return None
+
     permission = get_permission_by_id(
         db,
         permission_id,
     )
 
-    if not role or not permission:
+    if not permission:
         return None
 
     return remove_permission_from_role(

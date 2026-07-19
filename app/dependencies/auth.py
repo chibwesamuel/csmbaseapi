@@ -1,10 +1,11 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.security import decode_access_token
 from app.database.session import get_db
-from app.repositories.user import get_user_by_email
+from app.models.user import User
+from app.models.role import Role
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -15,7 +16,7 @@ oauth2_scheme = OAuth2PasswordBearer(
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
-):
+) -> User:
     """
     Retrieve the currently authenticated user
     from the JWT access token.
@@ -43,9 +44,14 @@ def get_current_user(
             },
         )
 
-    user = get_user_by_email(
-        db,
-        email,
+    user = (
+        db.query(User)
+        .options(
+            selectinload(User.roles)
+            .selectinload(Role.permissions)
+        )
+        .filter(User.email == email)
+        .first()
     )
 
     if not user:
@@ -59,8 +65,8 @@ def get_current_user(
 
     if not user.is_active and not user.is_superuser:
         raise HTTPException(
-            status_code=400,
-            detail="Inactive user"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user",
         )
 
     return user
