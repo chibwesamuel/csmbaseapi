@@ -91,3 +91,9 @@ class User(Base):
         secondary="user_roles",
         back_populates="users",
     )
+
+    organizations = relationship(
+        "OrganizationMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
