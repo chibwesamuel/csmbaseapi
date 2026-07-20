@@ -2,7 +2,13 @@ import uuid
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    String,
+    func,
+)
+
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,6 +44,13 @@ class OrganizationMember(Base):
             ondelete="CASCADE",
         ),
         nullable=False,
+    )
+
+
+    role: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="member",
     )
 
 

@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
+
+from app.dependencies.auth import get_current_user
 from app.dependencies.permissions import require_permission
+
 from app.models.user import User
 
 from app.schemas.organization import (
@@ -84,13 +87,20 @@ def create_organization(
     organization_data: OrganizationCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_permission("organizations.create")
+        get_current_user
     ),
 ):
+    """
+    Create a new organization.
+
+    The authenticated user automatically becomes
+    the organization owner.
+    """
 
     organization = create_new_organization(
         db,
         organization_data,
+        current_user,
     )
 
     if organization is None:

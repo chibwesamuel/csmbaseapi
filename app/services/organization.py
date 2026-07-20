@@ -15,6 +15,8 @@ from app.schemas.organization import (
     OrganizationUpdate,
     PaginatedOrganizationsResponse,
 )
+from app.models.user import User
+from app.models.organization_member import OrganizationMember
 
 
 def list_organizations(
@@ -58,7 +60,12 @@ def get_organization(
 def create_new_organization(
     db: Session,
     organization_data: OrganizationCreate,
+    current_user: User,
 ):
+    """
+    Create an organization and assign
+    the creator as the owner.
+    """
 
     existing = get_organization_by_slug(
         db,
@@ -68,10 +75,30 @@ def create_new_organization(
     if existing:
         return None
 
-    return create_repository(
+
+    organization = create_repository(
         db,
         organization_data,
     )
+
+
+    membership = OrganizationMember(
+        organization_id=organization.id,
+        user_id=current_user.id,
+        role="owner",
+    )
+
+
+    db.add(membership)
+
+    db.commit()
+
+    db.refresh(
+        organization
+    )
+
+
+    return organization
 
 
 def update_existing_organization(
