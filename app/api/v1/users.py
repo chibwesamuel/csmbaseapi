@@ -1,11 +1,10 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.dependencies.permissions import require_superuser
+from app.dependencies.permissions import require_permission
 from app.models.user import User
+
 from app.schemas.user import (
     UserResponse,
     UserUpdate,
@@ -38,7 +37,9 @@ def read_users(
     limit: int = 10,
     search: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.view")
+    ),
 ):
     return list_users(
         db,
@@ -55,7 +56,9 @@ def read_users(
 def read_user(
     user_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.view")
+    ),
 ):
     """
     Retrieve a single user.
@@ -75,6 +78,35 @@ def read_user(
     return user
 
 
+@router.post(
+    "/",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_new_user(
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("users.create")
+    ),
+):
+    """
+    Create a new user.
+    """
+
+    try:
+        return create_user(
+            db,
+            user_data,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        )
+
+
 @router.put(
     "/{user_id}",
     response_model=UserResponse,
@@ -83,7 +115,9 @@ def update_existing_user(
     user_id: str,
     user_data: UserUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.update")
+    ),
 ):
     """
     Update an existing user.
@@ -111,7 +145,9 @@ def update_existing_user(
 def deactivate_user(
     user_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.update")
+    ),
 ):
     """
     Deactivate a user account.
@@ -139,7 +175,9 @@ def deactivate_user(
 def activate_user(
     user_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.update")
+    ),
 ):
     """
     Activate a user account.
@@ -166,7 +204,9 @@ def activate_user(
 def remove_user(
     user_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.delete")
+    ),
 ):
     """
     Delete a user account.
@@ -186,29 +226,3 @@ def remove_user(
     return {
         "message": "User deleted successfully"
     }
-
-@router.post(
-    "/",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_new_user(
-    user_data: UserCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
-):
-    """
-    Create a new user.
-    """
-
-    try:
-        return create_user(
-            db,
-            user_data,
-        )
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
-        )
