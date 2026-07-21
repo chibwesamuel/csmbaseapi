@@ -1,10 +1,13 @@
+from fastapi import status
+
+
 def test_register_user(client, unique_user):
     response = client.post(
         "/auth/register",
         json=unique_user,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_201_CREATED
 
     data = response.json()
 
@@ -13,18 +16,24 @@ def test_register_user(client, unique_user):
 
 
 def test_duplicate_registration(client, unique_user):
-    client.post("/auth/register", json=unique_user)
+    client.post(
+        "/auth/register",
+        json=unique_user,
+    )
 
     response = client.post(
         "/auth/register",
         json=unique_user,
     )
 
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 def test_login(client, unique_user):
-    client.post("/auth/register", json=unique_user)
+    client.post(
+        "/auth/register",
+        json=unique_user,
+    )
 
     response = client.post(
         "/auth/login",
@@ -34,7 +43,7 @@ def test_login(client, unique_user):
         },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     token = response.json()
 
@@ -51,11 +60,14 @@ def test_invalid_login(client):
         },
     )
 
-    assert response.status_code in (400, 401)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_get_current_user(client, unique_user):
-    client.post("/auth/register", json=unique_user)
+    client.post(
+        "/auth/register",
+        json=unique_user,
+    )
 
     login = client.post(
         "/auth/login",
@@ -64,6 +76,8 @@ def test_get_current_user(client, unique_user):
             "password": unique_user["password"],
         },
     )
+
+    assert login.status_code == status.HTTP_200_OK
 
     token = login.json()["access_token"]
 
@@ -74,7 +88,7 @@ def test_get_current_user(client, unique_user):
         },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     me = response.json()
 
