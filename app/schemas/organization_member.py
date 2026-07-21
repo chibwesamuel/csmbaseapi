@@ -13,12 +13,14 @@ class OrganizationMemberCreate(BaseModel):
     role: str = "member"
 
 
+
 class OrganizationMemberUpdate(BaseModel):
     """
     Data used to update an organization membership.
     """
 
     role: str | None = None
+
 
 
 class OrganizationMemberResponse(BaseModel):
@@ -34,6 +36,24 @@ class OrganizationMemberResponse(BaseModel):
     role: str
 
     created_at: datetime
+
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+
+
+class PaginatedOrganizationMembersResponse(BaseModel):
+    """
+    Paginated organization member response.
+    """
+
+    total: int
+    skip: int
+    limit: int
+
+    members: list[OrganizationMemberResponse]
 
 
     model_config = ConfigDict(
