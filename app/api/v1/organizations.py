@@ -21,6 +21,7 @@ from app.services.organization import (
     create_new_organization,
     update_existing_organization,
     delete_existing_organization,
+    get_my_organizations,
 )
 
 
@@ -29,6 +30,24 @@ router = APIRouter(
     tags=["Organizations"],
 )
 
+@router.get(
+    "/my",
+    response_model=list[OrganizationResponse],
+)
+def read_my_organizations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_permission("organizations.view")
+    ),
+):
+    """
+    Retrieve organizations for the authenticated user.
+    """
+
+    return get_my_organizations(
+        db,
+        current_user.id,
+    )
 
 @router.get(
     "/",

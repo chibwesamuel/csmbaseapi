@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy.orm import Session
-
+from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 
 
@@ -114,3 +114,23 @@ def delete_member(
     db.commit()
 
     return True
+
+def get_user_organizations(
+    db: Session,
+    user_id: UUID,
+):
+    """
+    Retrieve organizations where a user is a member.
+    """
+
+    return (
+        db.query(Organization)
+        .join(
+            OrganizationMember,
+            Organization.id == OrganizationMember.organization_id,
+        )
+        .filter(
+            OrganizationMember.user_id == user_id
+        )
+        .all()
+    )

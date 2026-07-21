@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from app.repositories.organization import (
@@ -8,6 +10,10 @@ from app.repositories.organization import (
     create_organization as create_repository,
     update_organization as update_repository,
     delete_organization as delete_repository,
+)
+
+from app.repositories.organization_member import (
+    get_user_organizations,
 )
 
 from app.schemas.organization import (
@@ -138,4 +144,17 @@ def delete_existing_organization(
     return delete_repository(
         db,
         organization,
+    )
+
+def get_my_organizations(
+    db: Session,
+    user_id: UUID,
+):
+    """
+    Retrieve organizations belonging to a user.
+    """
+
+    return get_user_organizations(
+        db,
+        user_id,
     )

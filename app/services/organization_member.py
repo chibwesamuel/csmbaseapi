@@ -19,6 +19,7 @@ from app.repositories.organization_member import (
     create_member,
     update_member_role,
     delete_member,
+    get_user_organizations,
 )
 
 from app.models.organization_member import OrganizationMember
@@ -199,4 +200,17 @@ def remove_member(
     return delete_member(
         db,
         member,
+    )
+
+def get_my_organizations(
+    db: Session,
+    user_id: UUID,
+):
+    """
+    Retrieve organizations belonging to a user.
+    """
+
+    return get_user_organizations(
+        db,
+        user_id,
     )

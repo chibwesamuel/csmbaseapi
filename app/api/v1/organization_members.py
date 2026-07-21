@@ -10,7 +10,8 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.dependencies.auth import get_current_user
+
+from app.dependencies.permissions import require_permission
 
 from app.models.user import User
 
@@ -18,6 +19,7 @@ from app.schemas.organization_member import (
     OrganizationMemberCreate,
     OrganizationMemberUpdate,
     OrganizationMemberResponse,
+    PaginatedOrganizationMembersResponse,
 )
 
 from app.services.organization_member import (
@@ -36,12 +38,16 @@ router = APIRouter(
 
 @router.get(
     "/{organization_id}/members",
-    response_model=list[OrganizationMemberResponse],
+    response_model=PaginatedOrganizationMembersResponse,
 )
 def get_organization_members(
     organization_id: UUID,
+    skip: int = 0,
+    limit: int = 10,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("organizations.members.view")
+    ),
 ):
     """
     List members belonging to an organization.
@@ -50,6 +56,8 @@ def get_organization_members(
     return list_members(
         db,
         organization_id,
+        skip,
+        limit,
     )
 
 
@@ -62,7 +70,9 @@ def create_organization_member(
     organization_id: UUID,
     member_data: OrganizationMemberCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("organizations.members.create")
+    ),
 ):
     """
     Add a user to an organization.
@@ -92,7 +102,9 @@ def update_organization_member(
     user_id: UUID,
     member_data: OrganizationMemberUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("organizations.members.update")
+    ),
 ):
     """
     Update an organization member role.
@@ -120,7 +132,9 @@ def delete_organization_member(
     organization_id: UUID,
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("organizations.members.delete")
+    ),
 ):
     """
     Remove a user from an organization.
