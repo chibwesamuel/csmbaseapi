@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 
@@ -17,6 +18,9 @@ def get_members(
 
     return (
         db.query(OrganizationMember)
+        .options(
+            joinedload(OrganizationMember.user)
+        )
         .filter(
             OrganizationMember.organization_id == organization_id
         )
@@ -54,6 +58,9 @@ def get_member(
 
     return (
         db.query(OrganizationMember)
+        .options(
+            joinedload(OrganizationMember.user)
+        )
         .filter(
             OrganizationMember.organization_id == organization_id,
             OrganizationMember.user_id == user_id,
@@ -114,6 +121,7 @@ def delete_member(
     db.commit()
 
     return True
+
 
 def get_user_organizations(
     db: Session,

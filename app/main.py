@@ -13,6 +13,9 @@ from app.api.v1.user_roles import router as user_roles_router
 from app.api.v1.organizations import router as organizations_router
 from app.api.v1.organization_members import router as organization_members_router
 
+from strawberry.fastapi import GraphQLRouter
+from app.graphql.schema import schema
+
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -42,6 +45,12 @@ app.include_router(user_roles_router)
 app.include_router(organizations_router)
 app.include_router(organization_members_router)
 
+graphql_app = GraphQLRouter(schema)
+
+app.include_router(
+    graphql_app,
+    prefix="/graphql"
+)
 
 @app.get("/")
 def root():

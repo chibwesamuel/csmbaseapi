@@ -13,7 +13,6 @@ class OrganizationMemberCreate(BaseModel):
     role: str = "member"
 
 
-
 class OrganizationMemberUpdate(BaseModel):
     """
     Data used to update an organization membership.
@@ -21,6 +20,19 @@ class OrganizationMemberUpdate(BaseModel):
 
     role: str | None = None
 
+
+class OrganizationMemberUserResponse(BaseModel):
+    """
+    Basic user information returned with organization membership.
+    """
+
+    id: UUID
+    username: str
+    email: str
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
 
 class OrganizationMemberResponse(BaseModel):
@@ -33,15 +45,15 @@ class OrganizationMemberResponse(BaseModel):
     organization_id: UUID
     user_id: UUID
 
+    user: OrganizationMemberUserResponse
+
     role: str
 
     created_at: datetime
 
-
     model_config = ConfigDict(
         from_attributes=True
     )
-
 
 
 class PaginatedOrganizationMembersResponse(BaseModel):
@@ -54,7 +66,6 @@ class PaginatedOrganizationMembersResponse(BaseModel):
     limit: int
 
     members: list[OrganizationMemberResponse]
-
 
     model_config = ConfigDict(
         from_attributes=True
