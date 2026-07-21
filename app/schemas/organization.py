@@ -14,6 +14,7 @@ class OrganizationCreate(BaseModel):
     description: str | None = None
 
 
+
 class OrganizationUpdate(BaseModel):
     """
     Data used to update an organization.
@@ -24,12 +25,14 @@ class OrganizationUpdate(BaseModel):
     description: str | None = None
 
 
+
 class OrganizationResponse(BaseModel):
     """
     Organization data returned to clients.
     """
 
     id: UUID
+
     name: str
     slug: str
     description: str | None
@@ -37,9 +40,11 @@ class OrganizationResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
     model_config = ConfigDict(
         from_attributes=True
     )
+
 
 
 class PaginatedOrganizationsResponse(BaseModel):
@@ -50,7 +55,9 @@ class PaginatedOrganizationsResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
     organizations: list[OrganizationResponse]
+
 
     model_config = ConfigDict(
         from_attributes=True

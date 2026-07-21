@@ -2,36 +2,59 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.user import User
-from app.models.organization import Organization
+from app.core.enums import OrganizationRole
+
+from app.repositories.organization import (
+    get_organization_by_id,
+)
+
+from app.repositories.user import (
+    get_user_by_id,
+)
 
 from app.repositories.organization_member import (
     get_members,
+    count_members,
     get_member,
     create_member,
     update_member_role,
     delete_member,
 )
 
+from app.models.organization_member import OrganizationMember
 
-VALID_MEMBER_ROLES = {
-    "owner",
-    "admin",
-    "member",
-}
+from app.schemas.organization_member import (
+    PaginatedOrganizationMembersResponse,
+)
 
 
 def list_members(
     db: Session,
     organization_id: UUID,
+    skip: int = 0,
+    limit: int = 10,
 ):
     """
-    List all members of an organization.
+    List organization members.
     """
 
-    return get_members(
+    members = get_members(
         db,
         organization_id,
+        skip,
+        limit,
+    )
+
+    total = count_members(
+        db,
+        organization_id,
+    )
+
+    return PaginatedOrganizationMembersResponse(
+        total=total,
+        skip=skip,
+        limit=limit,
+        members=members,
     )
 
 
@@ -39,18 +62,15 @@ def add_member(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-    role: str = "member",
+    role: OrganizationRole = OrganizationRole.MEMBER,
 ):
     """
     Add a user to an organization.
     """
 
-    organization = (
-        db.query(Organization)
-        .filter(
-            Organization.id == organization_id
-        )
-        .first()
+    organization = get_organization_by_id(
+        db,
+        organization_id,
     )
 
     if not organization:
@@ -58,24 +78,14 @@ def add_member(
             "Organization not found"
         )
 
-
-    user = (
-        db.query(User)
-        .filter(
-            User.id == user_id
-        )
-        .first()
+    user = get_user_by_id(
+        db,
+        user_id,
     )
 
     if not user:
         raise ValueError(
             "User not found"
-        )
-
-
-    if role not in VALID_MEMBER_ROLES:
-        raise ValueError(
-            "Invalid membership role"
         )
 
 
@@ -95,7 +105,7 @@ def add_member(
         db,
         organization_id,
         user_id,
-        role,
+        role.value,
     )
 
 
@@ -103,17 +113,11 @@ def change_member_role(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-    role: str,
+    role: OrganizationRole,
 ):
     """
     Change a member's role.
     """
-
-    if role not in VALID_MEMBER_ROLES:
-        raise ValueError(
-            "Invalid membership role"
-        )
-
 
     member = get_member(
         db,
@@ -127,10 +131,30 @@ def change_member_role(
         )
 
 
+    if (
+        member.role == OrganizationRole.OWNER.value
+        and role != OrganizationRole.OWNER
+    ):
+
+        owner_count = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == organization_id,
+                OrganizationMember.role == OrganizationRole.OWNER.value,
+            )
+            .count()
+        )
+
+        if owner_count == 1:
+            raise ValueError(
+                "An organization must have at least one owner"
+            )
+
+
     return update_member_role(
         db,
         member,
-        role,
+        role.value,
     )
 
 
@@ -153,6 +177,23 @@ def remove_member(
         raise ValueError(
             "Membership not found"
         )
+
+
+    if member.role == OrganizationRole.OWNER.value:
+
+        owner_count = (
+            db.query(OrganizationMember)
+            .filter(
+                OrganizationMember.organization_id == organization_id,
+                OrganizationMember.role == OrganizationRole.OWNER.value,
+            )
+            .count()
+        )
+
+        if owner_count == 1:
+            raise ValueError(
+                "Cannot remove the last owner of an organization"
+            )
 
 
     return delete_member(

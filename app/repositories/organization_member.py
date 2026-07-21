@@ -8,9 +8,11 @@ from app.models.organization_member import OrganizationMember
 def get_members(
     db: Session,
     organization_id: UUID,
+    skip: int = 0,
+    limit: int = 10,
 ):
     """
-    Retrieve all members belonging to an organization.
+    Retrieve organization members.
     """
 
     return (
@@ -18,7 +20,26 @@ def get_members(
         .filter(
             OrganizationMember.organization_id == organization_id
         )
+        .offset(skip)
+        .limit(limit)
         .all()
+    )
+
+
+def count_members(
+    db: Session,
+    organization_id: UUID,
+):
+    """
+    Count organization members.
+    """
+
+    return (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == organization_id
+        )
+        .count()
     )
 
 
@@ -70,7 +91,7 @@ def update_member_role(
     role: str,
 ):
     """
-    Update a membership role.
+    Update a member role.
     """
 
     member.role = role
@@ -86,7 +107,7 @@ def delete_member(
     member: OrganizationMember,
 ):
     """
-    Remove a user from an organization.
+    Remove a member from an organization.
     """
 
     db.delete(member)
