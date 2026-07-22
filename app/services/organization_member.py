@@ -65,7 +65,7 @@ def add_member(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-    role: OrganizationRole = OrganizationRole.MEMBER,
+    role: OrganizationRole | str = OrganizationRole.MEMBER,
 ) -> OrganizationMember:
     """
     Add a user to an organization.
@@ -102,11 +102,17 @@ def add_member(
             "User is already a member of this organization"
         )
 
+    role_value = (
+        role.value
+        if isinstance(role, OrganizationRole)
+        else role
+    )
+
     return create_member(
         db,
         organization_id,
         user_id,
-        role.value,
+        role_value,
     )
 
 
@@ -114,7 +120,7 @@ def change_member_role(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-    role: OrganizationRole,
+    role: OrganizationRole | str,
 ) -> OrganizationMember:
     """
     Change a member's role.
@@ -131,9 +137,15 @@ def change_member_role(
             "Membership not found"
         )
 
+    role_value = (
+        role.value
+        if isinstance(role, OrganizationRole)
+        else role
+    )
+
     if (
         member.role == OrganizationRole.OWNER.value
-        and role != OrganizationRole.OWNER
+        and role_value != OrganizationRole.OWNER.value
     ):
         owner_count = count_owners(
             db,
@@ -148,7 +160,7 @@ def change_member_role(
     return update_member_role(
         db,
         member,
-        role.value,
+        role_value,
     )
 
 

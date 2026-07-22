@@ -1,3 +1,5 @@
+# app/api/v1/organization_members.py
+
 from uuid import UUID
 
 from fastapi import (
@@ -50,7 +52,7 @@ def get_organization_members(
     ),
 ):
     """
-    List members belonging to an organization.
+    List all members belonging to an organization.
     """
 
     return list_members(
@@ -87,9 +89,27 @@ def create_organization_member(
         )
 
     except ValueError as error:
+
+        message = str(error)
+
+        if message in (
+            "Organization not found",
+            "User not found",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        if message == "User is already a member of this organization":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=message,
+            )
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
+            detail=message,
         )
 
 
@@ -107,7 +127,7 @@ def update_organization_member(
     ),
 ):
     """
-    Update an organization member role.
+    Update an organization member's role.
     """
 
     try:
@@ -119,9 +139,18 @@ def update_organization_member(
         )
 
     except ValueError as error:
+
+        message = str(error)
+
+        if message == "Membership not found":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
+            detail=message,
         )
 
 
@@ -141,6 +170,7 @@ def delete_organization_member(
     """
 
     try:
+
         remove_member(
             db,
             organization_id,
@@ -152,7 +182,16 @@ def delete_organization_member(
         }
 
     except ValueError as error:
+
+        message = str(error)
+
+        if message == "Membership not found":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
+            detail=message,
         )
