@@ -6,6 +6,7 @@ from app.models.organization import Organization
 from app.models.organization_member import (
     OrganizationMember,
     MEMBER,
+    OWNER,
 )
 
 
@@ -14,7 +15,7 @@ def get_members(
     organization_id: UUID,
     skip: int = 0,
     limit: int = 10,
-):
+) -> list[OrganizationMember]:
     """
     Retrieve members belonging to an organization.
     """
@@ -36,7 +37,7 @@ def get_members(
 def count_members(
     db: Session,
     organization_id: UUID,
-):
+) -> int:
     """
     Count the number of members in an organization.
     """
@@ -50,11 +51,29 @@ def count_members(
     )
 
 
+def count_owners(
+    db: Session,
+    organization_id: UUID,
+) -> int:
+    """
+    Count the number of owners in an organization.
+    """
+
+    return (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id == organization_id,
+            OrganizationMember.role == OWNER,
+        )
+        .count()
+    )
+
+
 def get_member(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-):
+) -> OrganizationMember | None:
     """
     Retrieve a membership by organization and user.
     """
@@ -75,7 +94,7 @@ def get_member(
 def get_member_by_id(
     db: Session,
     member_id: UUID,
-):
+) -> OrganizationMember | None:
     """
     Retrieve a membership by its primary key.
     """
@@ -98,7 +117,7 @@ def create_member(
     organization_id: UUID,
     user_id: UUID,
     role: str = MEMBER,
-):
+) -> OrganizationMember:
     """
     Add a user to an organization.
     """
@@ -120,7 +139,7 @@ def update_member_role(
     db: Session,
     member: OrganizationMember,
     role: str,
-):
+) -> OrganizationMember:
     """
     Update a member's role.
     """
@@ -136,7 +155,7 @@ def update_member_role(
 def delete_member(
     db: Session,
     member: OrganizationMember,
-):
+) -> bool:
     """
     Remove a member from an organization.
     """
@@ -150,7 +169,7 @@ def delete_member(
 def get_user_organizations(
     db: Session,
     user_id: UUID,
-):
+) -> list[Organization]:
     """
     Retrieve all organizations a user belongs to.
     """
@@ -171,7 +190,7 @@ def get_user_organizations(
 def get_user_memberships(
     db: Session,
     user_id: UUID,
-):
+) -> list[OrganizationMember]:
     """
     Retrieve all membership records for a user.
     """
