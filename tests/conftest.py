@@ -8,6 +8,7 @@ from app.main import app
 from app.database.session import SessionLocal
 
 from app.models.user import User
+from app.models.permission import Permission
 from app.models.role import Role
 
 from app.repositories.user import get_user_by_email
@@ -165,3 +166,47 @@ def admin_headers(client, admin_user):
     return {
         "Authorization": f"Bearer {token}"
     }
+
+# ---------------------------------------------------------
+# Seed Permission
+# ---------------------------------------------------------
+
+@pytest.fixture
+def test_permission(db):
+
+    permission = (
+        db.query(Permission)
+        .filter(Permission.name == "users.view")
+        .first()
+    )
+
+    if permission is None:
+        permission = Permission(
+            name="users.view",
+            description="View users",
+        )
+
+        db.add(permission)
+        db.commit()
+        db.refresh(permission)
+
+    return permission
+
+
+# ---------------------------------------------------------
+# Create Empty Role
+# ---------------------------------------------------------
+
+@pytest.fixture
+def test_role(db):
+
+    role = Role(
+        name=f"Test Role {uuid.uuid4().hex[:8]}",
+        description="Role for testing permissions",
+    )
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    return role
