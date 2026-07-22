@@ -3,7 +3,10 @@ from uuid import UUID
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.organization import Organization
-from app.models.organization_member import OrganizationMember
+from app.models.organization_member import (
+    OrganizationMember,
+    MEMBER,
+)
 
 
 def get_members(
@@ -13,7 +16,7 @@ def get_members(
     limit: int = 10,
 ):
     """
-    Retrieve organization members.
+    Retrieve members belonging to an organization.
     """
 
     return (
@@ -35,7 +38,7 @@ def count_members(
     organization_id: UUID,
 ):
     """
-    Count organization members.
+    Count the number of members in an organization.
     """
 
     return (
@@ -53,7 +56,7 @@ def get_member(
     user_id: UUID,
 ):
     """
-    Retrieve a specific organization membership.
+    Retrieve a membership by organization and user.
     """
 
     return (
@@ -69,11 +72,32 @@ def get_member(
     )
 
 
+def get_member_by_id(
+    db: Session,
+    member_id: UUID,
+):
+    """
+    Retrieve a membership by its primary key.
+    """
+
+    return (
+        db.query(OrganizationMember)
+        .options(
+            joinedload(OrganizationMember.user),
+            joinedload(OrganizationMember.organization),
+        )
+        .filter(
+            OrganizationMember.id == member_id
+        )
+        .first()
+    )
+
+
 def create_member(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-    role: str = "member",
+    role: str = MEMBER,
 ):
     """
     Add a user to an organization.
@@ -98,7 +122,7 @@ def update_member_role(
     role: str,
 ):
     """
-    Update a member role.
+    Update a member's role.
     """
 
     member.role = role
@@ -128,7 +152,7 @@ def get_user_organizations(
     user_id: UUID,
 ):
     """
-    Retrieve organizations where a user is a member.
+    Retrieve all organizations a user belongs to.
     """
 
     return (
@@ -136,6 +160,26 @@ def get_user_organizations(
         .join(
             OrganizationMember,
             Organization.id == OrganizationMember.organization_id,
+        )
+        .filter(
+            OrganizationMember.user_id == user_id
+        )
+        .all()
+    )
+
+
+def get_user_memberships(
+    db: Session,
+    user_id: UUID,
+):
+    """
+    Retrieve all membership records for a user.
+    """
+
+    return (
+        db.query(OrganizationMember)
+        .options(
+            joinedload(OrganizationMember.organization)
         )
         .filter(
             OrganizationMember.user_id == user_id

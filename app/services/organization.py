@@ -2,14 +2,18 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.models.organization_member import OrganizationMember
+from app.models.user import User
+
 from app.repositories.organization import (
-    get_organizations,
     count_organizations,
+    create_organization as create_repository,
+    delete_organization as delete_repository,
+    get_organization_by_email,
     get_organization_by_id,
     get_organization_by_slug,
-    create_organization as create_repository,
+    get_organizations,
     update_organization as update_repository,
-    delete_organization as delete_repository,
 )
 
 from app.repositories.organization_member import (
@@ -21,8 +25,6 @@ from app.schemas.organization import (
     OrganizationUpdate,
     PaginatedOrganizationsResponse,
 )
-from app.models.user import User
-from app.models.organization_member import OrganizationMember
 
 
 def list_organizations(
@@ -31,7 +33,6 @@ def list_organizations(
     limit: int = 10,
     search: str | None = None,
 ):
-
     organizations = get_organizations(
         db,
         skip,
@@ -56,7 +57,6 @@ def get_organization(
     db: Session,
     organization_id,
 ):
-
     return get_organization_by_id(
         db,
         organization_id,
@@ -71,22 +71,34 @@ def create_new_organization(
     """
     Create an organization and assign
     the creator as the owner.
+
+    Returns:
+        Organization instance on success.
+        "slug_exists" if the slug already exists.
+        "email_exists" if the email already exists.
     """
 
-    existing = get_organization_by_slug(
+    existing_slug = get_organization_by_slug(
         db,
         organization_data.slug,
     )
 
-    if existing:
-        return None
+    if existing_slug:
+        return "slug_exists"
 
+    if organization_data.email:
+        existing_email = get_organization_by_email(
+            db,
+            organization_data.email,
+        )
+
+        if existing_email:
+            return "email_exists"
 
     organization = create_repository(
         db,
         organization_data,
     )
-
 
     membership = OrganizationMember(
         organization_id=organization.id,
@@ -94,15 +106,9 @@ def create_new_organization(
         role="owner",
     )
 
-
     db.add(membership)
-
     db.commit()
-
-    db.refresh(
-        organization
-    )
-
+    db.refresh(organization)
 
     return organization
 
@@ -112,7 +118,6 @@ def update_existing_organization(
     organization_id,
     organization_data: OrganizationUpdate,
 ):
-
     organization = get_organization_by_id(
         db,
         organization_id,
@@ -132,7 +137,6 @@ def delete_existing_organization(
     db: Session,
     organization_id,
 ):
-
     organization = get_organization_by_id(
         db,
         organization_id,
@@ -145,6 +149,7 @@ def delete_existing_organization(
         db,
         organization,
     )
+
 
 def get_my_organizations(
     db: Session,

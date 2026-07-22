@@ -36,9 +36,7 @@ router = APIRouter(
 )
 def read_my_organizations(
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("organizations.view")
-    ),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Retrieve organizations for the authenticated user.
@@ -122,10 +120,16 @@ def create_organization(
         current_user,
     )
 
-    if organization is None:
+    if organization == "slug_exists":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Organization slug already exists",
+        )
+
+    if organization == "email_exists":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Organization email already exists",
         )
 
     return organization
