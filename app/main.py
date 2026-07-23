@@ -60,3 +60,11 @@ def root():
         "status": "running",
         "message": "Welcome to PulseAPI🚀!",
     }
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "application": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+    }
