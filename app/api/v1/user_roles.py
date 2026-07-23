@@ -1,17 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from uuid import UUID
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.dependencies.permissions import require_superuser
 from app.models.user import User
 
+from app.schemas.role import RoleResponse
+
 from app.services.user_role import (
     assign_user_role,
     remove_user_role,
     list_user_roles,
 )
-
-from app.schemas.role import RoleResponse
 
 
 router = APIRouter(
@@ -25,50 +32,96 @@ router = APIRouter(
     response_model=RoleResponse,
 )
 def assign_role(
-    user_id: str,
-    role_id: str,
+    user_id: UUID,
+    role_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
-    user = assign_user_role(
-        db,
-        user_id,
-        role_id,
-    )
+    """
+    Assign a role to a user.
+    """
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User or role not found",
+    try:
+        user = assign_user_role(
+            db,
+            user_id,
+            role_id,
         )
 
-    return user.roles[-1]
+        return user.roles[-1]
+
+    except ValueError as error:
+
+        message = str(error)
+
+        if message in (
+            "User not found",
+            "Role not found",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        if message == "Role already assigned to user":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=message,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
 
 
 @router.delete(
     "/{user_id}/roles/{role_id}",
 )
 def remove_role(
-    user_id: str,
-    role_id: str,
+    user_id: UUID,
+    role_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
-    user = remove_user_role(
-        db,
-        user_id,
-        role_id,
-    )
+    """
+    Remove a role from a user.
+    """
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User or role not found",
+    try:
+        remove_user_role(
+            db,
+            user_id,
+            role_id,
         )
 
-    return {
-        "message": "Role removed from user successfully"
-    }
+        return {
+            "message": "Role removed from user successfully"
+        }
+
+    except ValueError as error:
+
+        message = str(error)
+
+        if message in (
+            "User not found",
+            "Role not found",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        if message == "Role is not assigned to user":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=message,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
 
 
 @router.get(
@@ -76,19 +129,23 @@ def remove_role(
     response_model=list[RoleResponse],
 )
 def get_roles(
-    user_id: str,
+    user_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
-    roles = list_user_roles(
-        db,
-        user_id,
-    )
+    """
+    Retrieve all roles assigned to a user.
+    """
 
-    if roles is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+    try:
+        return list_user_roles(
+            db,
+            user_id,
         )
 
-    return roles
+    except ValueError as error:
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        )

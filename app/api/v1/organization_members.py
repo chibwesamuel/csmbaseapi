@@ -1,3 +1,5 @@
+# app/api/v1/organization_members.py
+
 from uuid import UUID
 
 from fastapi import (
@@ -10,7 +12,8 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.dependencies.auth import get_current_user
+
+from app.dependencies.permissions import require_permission
 
 from app.models.user import User
 
@@ -18,6 +21,7 @@ from app.schemas.organization_member import (
     OrganizationMemberCreate,
     OrganizationMemberUpdate,
     OrganizationMemberResponse,
+    PaginatedOrganizationMembersResponse,
 )
 
 from app.services.organization_member import (
@@ -36,20 +40,26 @@ router = APIRouter(
 
 @router.get(
     "/{organization_id}/members",
-    response_model=list[OrganizationMemberResponse],
+    response_model=PaginatedOrganizationMembersResponse,
 )
 def get_organization_members(
     organization_id: UUID,
+    skip: int = 0,
+    limit: int = 10,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("organizations.members.view")
+    ),
 ):
     """
-    List members belonging to an organization.
+    List all members belonging to an organization.
     """
 
     return list_members(
         db,
         organization_id,
+        skip,
+        limit,
     )
 
 
@@ -62,7 +72,9 @@ def create_organization_member(
     organization_id: UUID,
     member_data: OrganizationMemberCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("organizations.members.create")
+    ),
 ):
     """
     Add a user to an organization.
@@ -77,9 +89,27 @@ def create_organization_member(
         )
 
     except ValueError as error:
+
+        message = str(error)
+
+        if message in (
+            "Organization not found",
+            "User not found",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        if message == "User is already a member of this organization":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=message,
+            )
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
+            detail=message,
         )
 
 
@@ -92,10 +122,12 @@ def update_organization_member(
     user_id: UUID,
     member_data: OrganizationMemberUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("organizations.members.update")
+    ),
 ):
     """
-    Update an organization member role.
+    Update an organization member's role.
     """
 
     try:
@@ -107,9 +139,18 @@ def update_organization_member(
         )
 
     except ValueError as error:
+
+        message = str(error)
+
+        if message == "Membership not found":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
+            detail=message,
         )
 
 
@@ -120,13 +161,16 @@ def delete_organization_member(
     organization_id: UUID,
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_permission("organizations.members.delete")
+    ),
 ):
     """
     Remove a user from an organization.
     """
 
     try:
+
         remove_member(
             db,
             organization_id,
@@ -138,7 +182,16 @@ def delete_organization_member(
         }
 
     except ValueError as error:
+
+        message = str(error)
+
+        if message == "Membership not found":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
+            detail=message,
         )

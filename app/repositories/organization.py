@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.models.organization import Organization
 from app.schemas.organization import (
@@ -32,6 +33,17 @@ def get_organization_by_slug(
         .first()
     )
 
+def get_organization_by_email(
+    db: Session,
+    email: str,
+):
+    return (
+        db.query(Organization)
+        .filter(
+            Organization.email == email
+        )
+        .first()
+    )
 
 def get_organizations(
     db: Session,
@@ -44,10 +56,12 @@ def get_organizations(
 
     if search:
         query = query.filter(
-            Organization.name.ilike(
-                f"%{search}%"
-            )
+        or_(
+            Organization.name.ilike(f"%{search}%"),
+            Organization.slug.ilike(f"%{search}%"),
+            Organization.description.ilike(f"%{search}%"),
         )
+    )
 
     return (
         query
@@ -66,10 +80,12 @@ def count_organizations(
 
     if search:
         query = query.filter(
-            Organization.name.ilike(
-                f"%{search}%"
-            )
+        or_(
+            Organization.name.ilike(f"%{search}%"),
+            Organization.slug.ilike(f"%{search}%"),
+            Organization.description.ilike(f"%{search}%"),
         )
+    )
 
     return query.count()
 
@@ -80,9 +96,7 @@ def create_organization(
 ):
 
     organization = Organization(
-        name=organization_data.name,
-        slug=organization_data.slug,
-        description=organization_data.description,
+        **organization_data.model_dump()
     )
 
     db.add(organization)

@@ -21,6 +21,7 @@ from app.services.organization import (
     create_new_organization,
     update_existing_organization,
     delete_existing_organization,
+    get_my_organizations,
 )
 
 
@@ -29,6 +30,22 @@ router = APIRouter(
     tags=["Organizations"],
 )
 
+@router.get(
+    "/my",
+    response_model=list[OrganizationResponse],
+)
+def read_my_organizations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieve organizations for the authenticated user.
+    """
+
+    return get_my_organizations(
+        db,
+        current_user.id,
+    )
 
 @router.get(
     "/",
@@ -103,10 +120,16 @@ def create_organization(
         current_user,
     )
 
-    if organization is None:
+    if organization == "slug_exists":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Organization slug already exists",
+        )
+
+    if organization == "email_exists":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Organization email already exists",
         )
 
     return organization

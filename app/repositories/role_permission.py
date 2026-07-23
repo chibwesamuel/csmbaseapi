@@ -1,39 +1,48 @@
-from sqlalchemy.orm import Session
-
-from app.models.role import Role
 from app.models.permission import Permission
+from app.models.role import Role
+
+from sqlalchemy.orm import Session
 
 
 def add_permission_to_role(
     db: Session,
     role: Role,
     permission: Permission,
-):
-    if permission not in role.permissions:
-        role.permissions.append(permission)
+) -> Permission:
+    """
+    Assign a permission to a role.
+    """
 
-        db.commit()
-        db.refresh(role)
+    role.permissions.append(permission)
 
-    return role
+    db.commit()
+    db.refresh(role)
+
+    return permission
 
 
 def remove_permission_from_role(
     db: Session,
     role: Role,
     permission: Permission,
-):
-    if permission in role.permissions:
-        role.permissions.remove(permission)
+) -> Role:
+    """
+    Remove a permission from a role.
+    """
 
-        db.commit()
-        db.refresh(role)
+    role.permissions.remove(permission)
+
+    db.commit()
+    db.refresh(role)
 
     return role
 
 
 def get_role_permissions(
-    db: Session,
     role: Role,
-):
+) -> list[Permission]:
+    """
+    Retrieve all permissions assigned to a role.
+    """
+
     return role.permissions

@@ -8,12 +8,15 @@ def assign_role_to_user(
     db: Session,
     user: User,
     role: Role,
-):
-    if role not in user.roles:
-        user.roles.append(role)
+) -> User:
+    """
+    Assign a role to a user.
+    """
 
-        db.commit()
-        db.refresh(user)
+    user.roles.append(role)
+
+    db.commit()
+    db.refresh(user)
 
     return user
 
@@ -22,25 +25,34 @@ def remove_role_from_user(
     db: Session,
     user: User,
     role: Role,
-):
-    if role in user.roles:
-        user.roles.remove(role)
+) -> User:
+    """
+    Remove a role from a user.
+    """
 
-        db.commit()
-        db.refresh(user)
+    user.roles.remove(role)
+
+    db.commit()
+    db.refresh(user)
 
     return user
 
 
 def get_user_roles(
-    db: Session,
     user: User,
-):
+) -> list[Role]:
+    """
+    Retrieve all roles assigned to a user.
+    """
+
     return user.roles
 
 
 def get_role_users(
-    db: Session,
     role: Role,
-):
+) -> list[User]:
+    """
+    Retrieve all users assigned to a role.
+    """
+
     return role.users

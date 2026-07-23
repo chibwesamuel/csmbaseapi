@@ -1,8 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from uuid import UUID
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
+
 from sqlalchemy.orm import Session
+from app.schemas.permission import PermissionResponse
 
 from app.database.session import get_db
-from app.dependencies.permissions import require_superuser
+
+from app.dependencies.permissions import (
+    require_superuser,
+)
+
 from app.models.user import User
 
 from app.services.role_permission import (
@@ -22,10 +35,14 @@ router = APIRouter(
     "/{role_id}/permissions",
 )
 def get_role_permissions(
-    role_id: str,
+    role_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
+    """
+    Retrieve all permissions assigned to a role.
+    """
+
     permissions = list_role_permissions(
         db,
         role_id,
@@ -42,49 +59,94 @@ def get_role_permissions(
 
 @router.post(
     "/{role_id}/permissions/{permission_id}",
+    response_model=PermissionResponse,
 )
 def add_role_permission(
-    role_id: str,
-    permission_id: str,
+    role_id: UUID,
+    permission_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
-    role = assign_permission(
-        db,
-        role_id,
-        permission_id,
-    )
+    """
+    Assign a permission to a role.
+    """
 
-    if role is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Role or permission not found",
+    try:
+        return assign_permission(
+            db,
+            role_id,
+            permission_id,
         )
 
-    return role
+    except ValueError as error:
+        message = str(error)
+
+        if message in (
+            "Role not found",
+            "Permission not found",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        if message == "Permission already assigned to role":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=message,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
 
 
 @router.delete(
     "/{role_id}/permissions/{permission_id}",
 )
 def remove_role_permission(
-    role_id: str,
-    permission_id: str,
+    role_id: UUID,
+    permission_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
-    role = revoke_permission(
-        db,
-        role_id,
-        permission_id,
-    )
+    """
+    Remove a permission from a role.
+    """
 
-    if role is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Role or permission not found",
+    try:
+
+        revoke_permission(
+            db,
+            role_id,
+            permission_id,
         )
 
-    return {
-        "message": "Permission removed from role successfully"
-    }
+        return {
+            "message": "Permission removed from role successfully"
+        }
+
+    except ValueError as error:
+
+        message = str(error)
+
+        if message in (
+            "Role not found",
+            "Permission not found",
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        if message == "Permission is not assigned to role":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=message,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
