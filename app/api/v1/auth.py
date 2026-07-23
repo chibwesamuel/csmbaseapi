@@ -20,6 +20,18 @@ from app.services.auth import (
     login_user,
 )
 
+from app.services.refresh_token import (
+    validate_refresh_token,
+    revoke_refresh_token,
+)
+
+from app.core.security import create_access_token
+
+from app.schemas.refresh_token import (
+    RefreshRequest,
+    LogoutRequest,
+)
+
 
 router = APIRouter(
     prefix="/auth",
@@ -78,6 +90,66 @@ def login(
             detail=str(error),
         )
 
+@router.post(
+    "/logout",
+)
+def logout(
+    request: LogoutRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Revoke a refresh token.
+    """
+
+    revoked = revoke_refresh_token(
+        db,
+        request.refresh_token,
+    )
+
+    if not revoked:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Refresh token not found",
+        )
+
+    return {
+        "message": "Successfully logged out",
+    }
+
+@router.post(
+    "/refresh",
+    response_model=Token,
+)
+def refresh_access_token(
+    request: RefreshRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Generate a new access token using a refresh token.
+    """
+
+    user = validate_refresh_token(
+        db,
+        request.refresh_token,
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    access_token = create_access_token(
+        {
+            "sub": user.email,
+        }
+    )
+
+    return Token(
+        access_token=access_token,
+        refresh_token=request.refresh_token,
+        token_type="bearer",
+    )
 
 @router.get(
     "/me",
