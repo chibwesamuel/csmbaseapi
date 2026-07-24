@@ -1,25 +1,50 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import (
+    FastAPI,
+    Request,
+    HTTPException,
+)
+
+from fastapi.exceptions import RequestValidationError
 
 from strawberry.fastapi import GraphQLRouter
 
 from app.core.config import settings
+
 from app.core.exceptions import EmailAlreadyRegistered
+
+from app.core.exception_handlers import (
+    email_exists_exception_handler,
+    http_exception_handler,
+    validation_exception_handler,
+    global_exception_handler,
+)
+
 from app.middleware.request_logging import RequestLoggingMiddleware
+
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.users import router as users_router
 from app.api.v1.roles import router as roles_router
 from app.api.v1.permissions import router as permissions_router
-from app.api.v1.role_permissions import router as role_permissions_router
-from app.api.v1.user_roles import router as user_roles_router
-from app.api.v1.organizations import router as organizations_router
+from app.api.v1.role_permissions import (
+    router as role_permissions_router,
+)
+from app.api.v1.user_roles import (
+    router as user_roles_router,
+)
+from app.api.v1.organizations import (
+    router as organizations_router,
+)
 from app.api.v1.organization_members import (
     router as organization_members_router,
 )
 
 from app.graphql.schema import schema
 
+
+# ==========================================================
+# OpenAPI Metadata
+# ==========================================================
 
 tags_metadata = [
     {
@@ -73,6 +98,10 @@ tags_metadata = [
     },
 ]
 
+
+# ==========================================================
+# FastAPI Application
+# ==========================================================
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -128,49 +157,72 @@ Authorization is enforced through FastAPI dependencies.
 )
 
 
+# ==========================================================
 # Middleware
+# ==========================================================
 
 app.add_middleware(
     RequestLoggingMiddleware,
 )
 
 
-# Exception Handlers
+# ==========================================================
+# Centralized Exception Handling
+# ==========================================================
 
-@app.exception_handler(EmailAlreadyRegistered)
-def email_exists_exception_handler(
-    request: Request,
-    exc: EmailAlreadyRegistered,
-):
-    """
-    Handle duplicate email registration attempts.
-    """
-
-    return JSONResponse(
-        status_code=400,
-        content={
-            "detail": exc.message,
-        },
-    )
+app.add_exception_handler(
+    EmailAlreadyRegistered,
+    email_exists_exception_handler,
+)
 
 
+app.add_exception_handler(
+    HTTPException,
+    http_exception_handler,
+)
+
+
+app.add_exception_handler(
+    RequestValidationError,
+    validation_exception_handler,
+)
+
+
+app.add_exception_handler(
+    Exception,
+    global_exception_handler,
+)
+
+
+# ==========================================================
 # REST API Routes
+# ==========================================================
 
 app.include_router(auth_router)
+
 app.include_router(users_router)
+
 app.include_router(roles_router)
+
 app.include_router(permissions_router)
+
 app.include_router(role_permissions_router)
+
 app.include_router(user_roles_router)
+
 app.include_router(organizations_router)
+
 app.include_router(organization_members_router)
 
 
-# GraphQL API
+# ==========================================================
+# GraphQL
+# ==========================================================
 
 graphql_app = GraphQLRouter(
     schema,
 )
+
 
 app.include_router(
     graphql_app,
@@ -179,7 +231,10 @@ app.include_router(
 )
 
 
+# ==========================================================
 # System Endpoints
+# ==========================================================
+
 
 @app.get(
     "/",
@@ -190,9 +245,6 @@ app.include_router(
     ),
 )
 def root():
-    """
-    Root API status endpoint.
-    """
 
     return {
         "application": settings.APP_NAME,
@@ -200,6 +252,7 @@ def root():
         "status": "running",
         "message": "Welcome to PulseAPI 🚀!",
     }
+
 
 
 @app.get(
@@ -211,9 +264,6 @@ def root():
     ),
 )
 def health_check():
-    """
-    Health check endpoint.
-    """
 
     return {
         "status": "healthy",
