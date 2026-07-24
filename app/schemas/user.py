@@ -78,13 +78,16 @@ class Token(BaseModel):
 
 
 class PaginatedUsersResponse(BaseModel):
-    """
-    Paginated user response.
-    """
-
     total: int
-    skip: int
-    limit: int
+
+    page: int
+    page_size: int
+
+    total_pages: int
+
+    has_next: bool
+    has_previous: bool
+
     users: list[UserResponse]
 
     model_config = ConfigDict(

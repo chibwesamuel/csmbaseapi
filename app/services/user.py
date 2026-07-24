@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+import math
 
 from app.repositories.user import (
     get_all_users,
@@ -38,10 +39,20 @@ def list_users(
         search,
     )
 
+    page = (skip // limit) + 1
+
+    total_pages = max(
+        1,
+        math.ceil(total / limit),
+    )
+
     return {
         "total": total,
-        "skip": skip,
-        "limit": limit,
+        "page": page,
+        "page_size": limit,
+        "total_pages": total_pages,
+        "has_next": page < total_pages,
+        "has_previous": page > 1,
         "users": users,
     }
 
