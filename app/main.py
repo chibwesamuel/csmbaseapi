@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.exceptions import EmailAlreadyRegistered
+from app.middleware.request_logging import RequestLoggingMiddleware
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.users import router as users_router
@@ -22,6 +23,9 @@ app = FastAPI(
     version=settings.APP_VERSION,
 )
 
+app.add_middleware(
+    RequestLoggingMiddleware
+)
 
 @app.exception_handler(EmailAlreadyRegistered)
 def email_exists_exception_handler(
