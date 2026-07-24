@@ -1,4 +1,5 @@
 import time
+import uuid
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -8,20 +9,34 @@ from app.core.logging import logger
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """
-    Middleware for logging incoming HTTP requests
-    and their response times.
+    Middleware for request tracing and response logging.
+
+    Adds:
+    - Request ID
+    - Response timing
+    - Response status logging
     """
+
 
     async def dispatch(
         self,
         request: Request,
         call_next,
     ):
-        start_time = time.time()
+
+        request_id = str(uuid.uuid4())
+
+        start_time = time.perf_counter()
+
+        request.state.request_id = request_id
 
         response = await call_next(request)
 
-        process_time = time.time() - start_time
+        process_time = (
+            time.perf_counter() - start_time
+        )
+
+        response.headers["X-Request-ID"] = request_id
 
         logger.info(
             "%s %s completed with %s in %.4fs",
