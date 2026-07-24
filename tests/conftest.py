@@ -14,6 +14,8 @@ from app.models.role import Role
 from app.repositories.user import get_user_by_email
 from app.repositories.user_role import assign_role_to_user
 
+from app.core.security import hash_password
+
 from tests.seed import seed_admin_role
 from tests.factories import (
     user_payload,
@@ -36,6 +38,7 @@ def client():
 
 @pytest.fixture
 def db():
+
     db = SessionLocal()
 
     try:
@@ -45,12 +48,22 @@ def db():
         db.close()
 
 
+@pytest.fixture
+def db_session(db):
+    """
+    Alias fixture for tests requiring db_session.
+    """
+
+    return db
+
+
 # ---------------------------------------------------------
 # Generic User Payload
 # ---------------------------------------------------------
 
 @pytest.fixture
 def unique_user():
+
     return user_payload()
 
 
@@ -59,7 +72,11 @@ def unique_user():
 # ---------------------------------------------------------
 
 @pytest.fixture
-def registered_user(client, unique_user):
+def registered_user(
+    client,
+    db,
+    unique_user,
+):
 
     response = client.post(
         "/auth/register",
@@ -68,7 +85,72 @@ def registered_user(client, unique_user):
 
     assert response.status_code == 201
 
-    return unique_user
+    user = get_user_by_email(
+        db,
+        unique_user["email"],
+    )
+
+    assert user is not None
+
+    return user
+
+
+# ---------------------------------------------------------
+# Create Normal User Model
+# ---------------------------------------------------------
+
+@pytest.fixture
+def normal_user(db):
+
+    username = f"user_{uuid.uuid4().hex[:8]}"
+
+    user = User(
+        email=f"{username}@example.com",
+        username=username,
+        first_name="John",
+        last_name="Doe",
+        hashed_password=hash_password(
+            "Password123!"
+        ),
+        is_active=True,
+        is_verified=False,
+        is_superuser=False,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+# ---------------------------------------------------------
+# Create Inactive User Model
+# ---------------------------------------------------------
+
+@pytest.fixture
+def inactive_user(db):
+
+    username = f"inactive_{uuid.uuid4().hex[:8]}"
+
+    user = User(
+        email=f"{username}@example.com",
+        username=username,
+        first_name="Inactive",
+        last_name="User",
+        hashed_password=hash_password(
+            "Password123!"
+        ),
+        is_active=False,
+        is_verified=False,
+        is_superuser=False,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user
 
 
 # ---------------------------------------------------------
@@ -76,13 +158,17 @@ def registered_user(client, unique_user):
 # ---------------------------------------------------------
 
 @pytest.fixture
-def authenticated_headers(client, registered_user):
+def authenticated_headers(
+    client,
+    registered_user,
+    unique_user,
+):
 
     response = client.post(
         "/auth/login",
         json={
-            "email": registered_user["email"],
-            "password": registered_user["password"],
+            "email": registered_user.email,
+            "password": unique_user["password"],
         },
     )
 
@@ -112,7 +198,12 @@ def admin_role(db):
 @pytest.fixture
 def admin_user(client, db, admin_role):
 
+    password = "AdminPassword123!"
+
     payload = admin_payload()
+
+    # Ensure known password
+    payload["password"] = password
 
     response = client.post(
         "/auth/register",
@@ -141,7 +232,10 @@ def admin_user(client, db, admin_role):
     db.commit()
     db.refresh(user)
 
-    return payload
+    # Test-only helper attribute
+    user.test_password = password
+
+    return user
 
 
 # ---------------------------------------------------------
@@ -154,8 +248,8 @@ def admin_headers(client, admin_user):
     response = client.post(
         "/auth/login",
         json={
-            "email": admin_user["email"],
-            "password": admin_user["password"],
+            "email": admin_user.email,
+            "password": admin_user.test_password,
         },
     )
 
@@ -167,6 +261,7 @@ def admin_headers(client, admin_user):
         "Authorization": f"Bearer {token}"
     }
 
+
 # ---------------------------------------------------------
 # Seed Permission
 # ---------------------------------------------------------
@@ -176,11 +271,14 @@ def test_permission(db):
 
     permission = (
         db.query(Permission)
-        .filter(Permission.name == "users.view")
+        .filter(
+            Permission.name == "users.view"
+        )
         .first()
     )
 
     if permission is None:
+
         permission = Permission(
             name="users.view",
             description="View users",
