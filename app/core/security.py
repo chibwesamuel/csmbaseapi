@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
-
+import hashlib
+import secrets
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
@@ -86,3 +87,36 @@ def decode_access_token(
 
     except JWTError:
         return None
+
+def generate_refresh_token() -> str:
+    """
+    Generate a secure random refresh token.
+    """
+
+    return secrets.token_urlsafe(64)
+
+
+def hash_refresh_token(
+    refresh_token: str,
+) -> str:
+    """
+    Hash a refresh token before storing it.
+    """
+
+    return hashlib.sha256(
+        refresh_token.encode("utf-8")
+    ).hexdigest()
+
+
+def verify_refresh_token(
+    refresh_token: str,
+    stored_hash: str,
+) -> bool:
+    """
+    Verify a refresh token against its stored hash.
+    """
+
+    return (
+        hash_refresh_token(refresh_token)
+        == stored_hash
+    )

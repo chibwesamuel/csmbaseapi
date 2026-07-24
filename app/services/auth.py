@@ -15,6 +15,11 @@ from app.schemas.user import (
     UserCreate,
     Token,
 )
+
+from app.services.refresh_token import (
+    create_user_refresh_token,
+)
+
 from app.core.exceptions import email_already_registered
 
 
@@ -91,7 +96,13 @@ def login_user(
         }
     )
 
+    refresh_token = create_user_refresh_token(
+        db,
+        user,
+    )
+
     return Token(
         access_token=access_token,
+        refresh_token=refresh_token,
         token_type="bearer",
     )

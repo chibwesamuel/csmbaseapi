@@ -28,11 +28,17 @@ router = APIRouter(
 )
 
 
+# ==========================================================
+# List Users (Pagination + Search)
+# ==========================================================
+
 @router.get(
     "/",
     response_model=PaginatedUsersResponse,
 )
 def read_users(
+    page: int | None = None,
+    page_size: int | None = None,
     skip: int = 0,
     limit: int = 10,
     search: str | None = None,
@@ -41,13 +47,54 @@ def read_users(
         require_permission("users.view")
     ),
 ):
+    """
+    Retrieve users.
+
+    Supports both:
+
+    • page/page_size
+    • skip/limit (legacy compatibility)
+    """
+
+    # Prefer page/page_size when provided
+    if page is not None or page_size is not None:
+
+        page = page or 1
+        page_size = page_size or 10
+
+        if page < 1:
+            page = 1
+
+        if page_size < 1:
+            page_size = 10
+
+        if page_size > 100:
+            page_size = 100
+
+        skip = (page - 1) * page_size
+        limit = page_size
+
+    else:
+        if skip < 0:
+            skip = 0
+
+        if limit < 1:
+            limit = 10
+
+        if limit > 100:
+            limit = 100
+
     return list_users(
-        db,
-        skip,
-        limit,
-        search,
+        db=db,
+        skip=skip,
+        limit=limit,
+        search=search,
     )
 
+
+# ==========================================================
+# Get Single User
+# ==========================================================
 
 @router.get(
     "/{user_id}",
@@ -78,6 +125,10 @@ def read_user(
     return user
 
 
+# ==========================================================
+# Create User
+# ==========================================================
+
 @router.post(
     "/",
     response_model=UserResponse,
@@ -106,6 +157,10 @@ def create_new_user(
             detail=str(error),
         )
 
+
+# ==========================================================
+# Update User
+# ==========================================================
 
 @router.put(
     "/{user_id}",
@@ -138,6 +193,10 @@ def update_existing_user(
     return user
 
 
+# ==========================================================
+# Deactivate User
+# ==========================================================
+
 @router.patch(
     "/{user_id}/deactivate",
     response_model=UserResponse,
@@ -168,6 +227,10 @@ def deactivate_user(
     return user
 
 
+# ==========================================================
+# Activate User
+# ==========================================================
+
 @router.patch(
     "/{user_id}/activate",
     response_model=UserResponse,
@@ -197,6 +260,10 @@ def activate_user(
 
     return user
 
+
+# ==========================================================
+# Delete User
+# ==========================================================
 
 @router.delete(
     "/{user_id}",

@@ -51,6 +51,17 @@ def get_users(
     Paginated user listing with optional search.
     """
 
+    # Prevent invalid database offsets
+    if skip < 0:
+        skip = 0
+
+    # Prevent invalid limits
+    if limit < 1:
+        limit = 10
+
+    if limit > 100:
+        limit = 100
+
     query = db.query(User)
 
     if search:

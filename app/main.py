@@ -1,62 +1,252 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import (
+    FastAPI,
+    Request,
+    HTTPException,
+)
 
-from app.core.config import settings
-from app.core.exceptions import EmailAlreadyRegistered
-
-from app.api.v1.auth import router as auth_router
-from app.api.v1.users import router as users_router
-from app.api.v1.roles import router as roles_router
-from app.api.v1.permissions import router as permissions_router
-from app.api.v1.role_permissions import router as role_permissions_router
-from app.api.v1.user_roles import router as user_roles_router
-from app.api.v1.organizations import router as organizations_router
-from app.api.v1.organization_members import router as organization_members_router
+from fastapi.exceptions import RequestValidationError
 
 from strawberry.fastapi import GraphQLRouter
+
+from app.core.config import settings
+
+from app.core.exceptions import EmailAlreadyRegistered
+
+from app.core.exception_handlers import (
+    email_exists_exception_handler,
+    http_exception_handler,
+    validation_exception_handler,
+    global_exception_handler,
+)
+
+from app.middleware.request_logging import RequestLoggingMiddleware
+
+from app.api.v1.router import api_router
+
 from app.graphql.schema import schema
 
+
+# ==========================================================
+# OpenAPI Metadata
+# ==========================================================
+
+tags_metadata = [
+    {
+        "name": "Authentication",
+        "description": (
+            "User registration, login, refresh token "
+            "and logout operations."
+        ),
+    },
+    {
+        "name": "Users",
+        "description": (
+            "User account management and profile operations."
+        ),
+    },
+    {
+        "name": "Roles",
+        "description": (
+            "Role creation, assignment and management."
+        ),
+    },
+    {
+        "name": "Permissions",
+        "description": (
+            "Permission management and access control."
+        ),
+    },
+    {
+        "name": "Organization",
+        "description": (
+            "Organization creation and management."
+        ),
+    },
+    {
+        "name": "Organization Members",
+        "description": (
+            "Manage users inside organizations."
+        ),
+    },
+    {
+        "name": "GraphQL",
+        "description": (
+            "GraphQL query and mutation interface."
+        ),
+    },
+    {
+        "name": "System",
+        "description": (
+            "System health and API status endpoints."
+        ),
+    },
+]
+
+
+# ==========================================================
+# FastAPI Application
+# ==========================================================
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
+    description="""
+# PulseAPI
+
+PulseAPI is a modern, production-ready REST and GraphQL backend
+built with FastAPI.
+
+## Features
+
+- JWT Authentication
+- Refresh Token Authentication
+- Role-Based Access Control (RBAC)
+- Organization & Membership Management
+- REST API
+- GraphQL API
+- PostgreSQL Database
+- SQLAlchemy ORM
+- Alembic Database Migrations
+- Interactive Swagger Documentation
+
+## Authentication
+
+Most endpoints require authentication.
+
+1. Login using **POST /auth/login**
+2. Copy the returned **access_token**
+3. Click **Authorize** in Swagger UI
+4. Paste your token
+
+Swagger automatically adds the required Bearer prefix.
+
+## Authorization
+
+Some endpoints require:
+
+- Superuser privileges
+- Organization owner privileges
+- Organization administrator privileges
+
+Authorization is enforced through FastAPI dependencies.
+""",
+    openapi_tags=tags_metadata,
+    contact={
+        "name": "PulseAPI",
+        "url": "https://github.com/chibwesamuel/pulseapi",
+    },
+    license_info={
+        "name": "MIT",
+    },
 )
 
 
-@app.exception_handler(EmailAlreadyRegistered)
-def email_exists_exception_handler(
-    request: Request,
-    exc: EmailAlreadyRegistered,
-):
-    return JSONResponse(
-        status_code=400,
-        content={
-            "detail": exc.message
-        },
-    )
+# ==========================================================
+# Middleware
+# ==========================================================
+
+app.add_middleware(
+    RequestLoggingMiddleware,
+)
 
 
-app.include_router(auth_router)
-app.include_router(users_router)
-app.include_router(roles_router)
-app.include_router(permissions_router)
-app.include_router(role_permissions_router)
-app.include_router(user_roles_router)
-app.include_router(organizations_router)
-app.include_router(organization_members_router)
+# ==========================================================
+# Centralized Exception Handling
+# ==========================================================
 
-graphql_app = GraphQLRouter(schema)
+app.add_exception_handler(
+    EmailAlreadyRegistered,
+    email_exists_exception_handler,
+)
+
+
+app.add_exception_handler(
+    HTTPException,
+    http_exception_handler,
+)
+
+
+app.add_exception_handler(
+    RequestValidationError,
+    validation_exception_handler,
+)
+
+
+app.add_exception_handler(
+    Exception,
+    global_exception_handler,
+)
+
+
+# ==========================================================
+# REST API Routes
+# ==========================================================
+
+# Legacy routes (temporary compatibility)
+app.include_router(
+    api_router,
+)
+
+
+# Versioned routes
+app.include_router(
+    api_router,
+    prefix="/api/v1",
+)
+
+
+# ==========================================================
+# GraphQL
+# ==========================================================
+
+graphql_app = GraphQLRouter(
+    schema,
+)
+
 
 app.include_router(
     graphql_app,
-    prefix="/graphql"
+    prefix="/graphql",
+    tags=["GraphQL"],
 )
 
-@app.get("/")
+
+# ==========================================================
+# System Endpoints
+# ==========================================================
+
+
+@app.get(
+    "/",
+    tags=["System"],
+    summary="API status",
+    description=(
+        "Returns basic information about the running API service."
+    ),
+)
 def root():
+
     return {
         "application": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "status": "running",
-        "message": "Welcome to PulseAPI🚀!",
+        "message": "Welcome to PulseAPI 🚀!",
+    }
+
+
+
+@app.get(
+    "/health",
+    tags=["System"],
+    summary="Health check",
+    description=(
+        "Returns the current health status of PulseAPI."
+    ),
+)
+def health_check():
+
+    return {
+        "status": "healthy",
+        "application": settings.APP_NAME,
+        "version": settings.APP_VERSION,
     }

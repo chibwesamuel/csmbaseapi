@@ -1,9 +1,9 @@
-from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session
+# app/dependencies/permissions.py
 
-from app.database.session import get_db
+from fastapi import Depends, HTTPException, status
 
 from app.dependencies.auth import get_current_user
+
 from app.models.user import User
 
 
@@ -27,7 +27,7 @@ def require_verified_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     """
-    Ensure the current user email/account is verified.
+    Ensure the current user account is verified.
     """
 
     if not current_user.is_verified:
@@ -57,24 +57,25 @@ def require_superuser(
 
 def require_permission(permission_name: str):
     """
-    Check whether the current user has a specific permission
-    through any of their assigned roles.
+    Ensure the current user has a specific permission.
+
+    Permissions are inherited through the user's assigned roles.
     """
 
     def checker(
         current_user: User = Depends(get_current_user),
-        db: Session = Depends(get_db),
-    ):
-        user_permissions = []
+    ) -> User:
 
-        for role in current_user.roles:
-            for permission in role.permissions:
-                user_permissions.append(permission.name)
+        user_permissions = {
+            permission.name
+            for role in current_user.roles
+            for permission in role.permissions
+        }
 
         if permission_name not in user_permissions:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Permission denied",
+                detail=f"Permission '{permission_name}' required",
             )
 
         return current_user
