@@ -1,6 +1,11 @@
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.filtering import (
+    apply_boolean_filter,
+)
+from app.core.sorting import apply_sorting
+
 from app.models.user import User
 from app.schemas.user import (
     UserCreate,
@@ -46,9 +51,15 @@ def get_users(
     skip: int = 0,
     limit: int = 10,
     search: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
+    is_active: bool | None = None,
+    is_verified: bool | None = None,
+    is_superuser: bool | None = None,
 ):
     """
-    Paginated user listing with optional search.
+    Paginated user listing with search,
+    filtering and sorting.
     """
 
     # Prevent invalid database offsets
@@ -64,6 +75,9 @@ def get_users(
 
     query = db.query(User)
 
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search:
         search_term = f"%{search}%"
 
@@ -76,6 +90,37 @@ def get_users(
             )
         )
 
+    # -----------------------------
+    # Filters
+    # -----------------------------
+    query = apply_boolean_filter(
+        query,
+        User.is_active,
+        is_active,
+    )
+
+    query = apply_boolean_filter(
+        query,
+        User.is_verified,
+        is_verified,
+    )
+
+    query = apply_boolean_filter(
+        query,
+        User.is_superuser,
+        is_superuser,
+    )
+
+    # -----------------------------
+    # Sorting
+    # -----------------------------
+    query = apply_sorting(
+        query,
+        User,
+        sort_by,
+        sort_order,
+    )
+
     return (
         query
         .offset(skip)
@@ -87,9 +132,13 @@ def get_users(
 def count_users(
     db: Session,
     search: str | None = None,
+    is_active: bool | None = None,
+    is_verified: bool | None = None,
+    is_superuser: bool | None = None,
 ):
     """
-    Count users with optional search.
+    Count users with search
+    and filtering applied.
     """
 
     query = db.query(User)
@@ -105,6 +154,24 @@ def count_users(
                 User.last_name.ilike(search_term),
             )
         )
+
+    query = apply_boolean_filter(
+        query,
+        User.is_active,
+        is_active,
+    )
+
+    query = apply_boolean_filter(
+        query,
+        User.is_verified,
+        is_verified,
+    )
+
+    query = apply_boolean_filter(
+        query,
+        User.is_superuser,
+        is_superuser,
+    )
 
     return query.count()
 
