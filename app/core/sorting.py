@@ -4,24 +4,21 @@ from sqlalchemy import desc
 
 def apply_sorting(
     query,
-    model,
     sort_by: str | None,
     sort_order: str = "asc",
+    allowed_fields: dict | None = None,
 ):
     """
-    Apply dynamic sorting to a SQLAlchemy query.
+    Apply sorting to a SQLAlchemy query.
 
-    Invalid fields are ignored gracefully.
+    Only fields present in allowed_fields
+    can be used for sorting.
     """
 
-    if not sort_by:
+    if not sort_by or not allowed_fields:
         return query
 
-    column = getattr(
-        model,
-        sort_by,
-        None,
-    )
+    column = allowed_fields.get(sort_by)
 
     if column is None:
         return query

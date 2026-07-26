@@ -1,3 +1,5 @@
+from math import ceil
+
 from sqlalchemy.orm import Session
 
 from app.repositories.role import (
@@ -22,27 +24,45 @@ def list_roles(
     skip: int = 0,
     limit: int = 10,
     search: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
 ) -> PaginatedRolesResponse:
     """
-    Return a paginated list of roles.
+    Return a paginated list of roles
+    with search and sorting.
     """
 
     roles = get_roles(
-        db,
-        skip,
-        limit,
-        search,
+        db=db,
+        skip=skip,
+        limit=limit,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
     total = count_roles(
-        db,
-        search,
+        db=db,
+        search=search,
+    )
+
+    page = (
+        skip // limit
+    ) + 1
+
+    total_pages = (
+        ceil(total / limit)
+        if total > 0
+        else 1
     )
 
     return PaginatedRolesResponse(
         total=total,
-        skip=skip,
-        limit=limit,
+        page=page,
+        page_size=limit,
+        total_pages=total_pages,
+        has_next=page < total_pages,
+        has_previous=page > 1,
         roles=roles,
     )
 

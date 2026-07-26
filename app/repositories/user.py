@@ -114,11 +114,20 @@ def get_users(
     # -----------------------------
     # Sorting
     # -----------------------------
+    allowed_sort_fields = {
+        "email": User.email,
+        "username": User.username,
+        "first_name": User.first_name,
+        "last_name": User.last_name,
+        "created_at": User.created_at,
+        "updated_at": User.updated_at,
+    }
+
     query = apply_sorting(
-        query,
-        User,
-        sort_by,
-        sort_order,
+        query=query,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        allowed_fields=allowed_sort_fields,
     )
 
     return (

@@ -1,8 +1,13 @@
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.sorting import apply_sorting
+
 from app.models.role import Role
-from app.schemas.role import RoleCreate, RoleUpdate
+from app.schemas.role import (
+    RoleCreate,
+    RoleUpdate,
+)
 
 
 def get_role_by_id(
@@ -32,9 +37,30 @@ def get_roles(
     skip: int = 0,
     limit: int = 10,
     search: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
 ):
+    """
+    Paginated role listing with
+    search and sorting.
+    """
+
+    # Prevent invalid offsets
+    if skip < 0:
+        skip = 0
+
+    # Prevent invalid limits
+    if limit < 1:
+        limit = 10
+
+    if limit > 100:
+        limit = 100
+
     query = db.query(Role)
 
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search:
         term = f"%{search}%"
 
@@ -44,6 +70,21 @@ def get_roles(
                 Role.description.ilike(term),
             )
         )
+
+    # -----------------------------
+    # Sorting
+    # -----------------------------
+    allowed_sort_fields = {
+        "name": Role.name,
+        "description": Role.description,
+    }
+
+    query = apply_sorting(
+        query=query,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        allowed_fields=allowed_sort_fields,
+    )
 
     return (
         query
@@ -57,6 +98,10 @@ def count_roles(
     db: Session,
     search: str | None = None,
 ):
+    """
+    Count roles with optional search.
+    """
+
     query = db.query(Role)
 
     if search:
