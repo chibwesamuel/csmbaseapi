@@ -74,8 +74,11 @@ def test_list_roles(
 
     assert "roles" in data
     assert "total" in data
-    assert "skip" in data
-    assert "limit" in data
+    assert "page" in data
+    assert "page_size" in data
+    assert "total_pages" in data
+    assert "has_next" in data
+    assert "has_previous" in data
 
 
 def test_get_role(

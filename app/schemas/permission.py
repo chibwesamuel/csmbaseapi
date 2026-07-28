@@ -41,6 +41,17 @@ class PaginatedPermissionsResponse(BaseModel):
     """
 
     total: int
-    skip: int
-    limit: int
+
+    page: int
+    page_size: int
+
+    total_pages: int
+
+    has_next: bool
+    has_previous: bool
+
     permissions: list[PermissionResponse]
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )

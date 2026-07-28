@@ -1,8 +1,13 @@
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.sorting import apply_sorting
+
 from app.models.permission import Permission
-from app.schemas.permission import PermissionCreate, PermissionUpdate
+from app.schemas.permission import (
+    PermissionCreate,
+    PermissionUpdate,
+)
 
 
 def get_permission_by_id(
@@ -27,14 +32,38 @@ def get_permission_by_name(
     )
 
 
+from app.core.sorting import apply_sorting
+
+
 def get_permissions(
     db: Session,
     skip: int = 0,
     limit: int = 10,
     search: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
 ):
+    """
+    Return paginated permissions with
+    optional search and sorting.
+    """
+
+    # Prevent invalid offsets
+    if skip < 0:
+        skip = 0
+
+    # Prevent invalid limits
+    if limit < 1:
+        limit = 10
+
+    if limit > 100:
+        limit = 100
+
     query = db.query(Permission)
 
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search:
         term = f"%{search}%"
 
@@ -44,6 +73,21 @@ def get_permissions(
                 Permission.description.ilike(term),
             )
         )
+
+    # -----------------------------
+    # Sorting
+    # -----------------------------
+    allowed_sort_fields = {
+        "name": Permission.name,
+        "description": Permission.description,
+    }
+
+    query = apply_sorting(
+        query=query,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        allowed_fields=allowed_sort_fields,
+    )
 
     return (
         query
@@ -57,6 +101,11 @@ def count_permissions(
     db: Session,
     search: str | None = None,
 ):
+    """
+    Count permissions matching
+    an optional search.
+    """
+
     query = db.query(Permission)
 
     if search:

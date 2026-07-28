@@ -350,3 +350,100 @@ def test_cannot_change_last_owner_role(
     assert response.json()["detail"] == (
         "An organization must have at least one owner"
     )
+
+def test_normal_user_cannot_list_members(
+    client,
+    authenticated_headers,
+):
+    organization = create_test_organization(
+        client,
+        authenticated_headers,
+    )
+
+    response = client.get(
+        f"/organizations/{organization['id']}/members",
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 403
+
+def test_normal_user_cannot_add_member(
+    client,
+    authenticated_headers,
+):
+    organization = create_test_organization(
+        client,
+        authenticated_headers,
+    )
+
+    user = create_test_user(client)
+
+    response = client.post(
+        f"/organizations/{organization['id']}/members",
+        json={
+            "user_id": user["id"],
+            "role": "member",
+        },
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 403
+
+def test_normal_user_cannot_update_member_role(
+    client,
+    authenticated_headers,
+    admin_headers,
+):
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    user = create_test_user(client)
+
+    client.post(
+        f"/organizations/{organization['id']}/members",
+        json={
+            "user_id": user["id"],
+            "role": "member",
+        },
+        headers=admin_headers,
+    )
+
+    response = client.patch(
+        f"/organizations/{organization['id']}/members/{user['id']}",
+        json={
+            "role": "admin",
+        },
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 403
+
+def test_normal_user_cannot_remove_member(
+    client,
+    authenticated_headers,
+    admin_headers,
+):
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    user = create_test_user(client)
+
+    client.post(
+        f"/organizations/{organization['id']}/members",
+        json={
+            "user_id": user["id"],
+            "role": "member",
+        },
+        headers=admin_headers,
+    )
+
+    response = client.delete(
+        f"/organizations/{organization['id']}/members/{user['id']}",
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 403

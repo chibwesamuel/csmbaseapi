@@ -31,17 +31,52 @@ router = APIRouter(
     response_model=PaginatedRolesResponse,
 )
 def read_roles(
-    skip: int = 0,
-    limit: int = 10,
+    page: int = 1,
+    page_size: int = 10,
     search: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
     db: Session = Depends(get_db),
     current_user: User = Depends(require_superuser),
 ):
+    """
+    Retrieve roles.
+
+    Supports:
+
+    - Pagination
+    - Search
+    - Sorting
+
+    Examples:
+
+    /roles?page=1&page_size=20
+
+    /roles?search=admin
+
+    /roles?sort_by=name&sort_order=desc
+    """
+
+    if page < 1:
+        page = 1
+
+    if page_size < 1:
+        page_size = 10
+
+    if page_size > 100:
+        page_size = 100
+
+    skip = (
+        page - 1
+    ) * page_size
+
     return list_roles(
-        db,
-        skip,
-        limit,
-        search,
+        db=db,
+        skip=skip,
+        limit=page_size,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
 

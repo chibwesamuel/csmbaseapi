@@ -1,4 +1,4 @@
-import uuid
+from fastapi import status
 
 
 def test_assign_permission(
@@ -7,18 +7,16 @@ def test_assign_permission(
     test_role,
     test_permission,
 ):
-
     response = client.post(
         f"/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
 
     assert data["name"] == "users.view"
-
 
 
 def test_duplicate_permission_assignment(
@@ -27,7 +25,6 @@ def test_duplicate_permission_assignment(
     test_role,
     test_permission,
 ):
-
     client.post(
         f"/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
@@ -38,13 +35,12 @@ def test_duplicate_permission_assignment(
         headers=admin_headers,
     )
 
-    assert response.status_code == 409
+    assert response.status_code == status.HTTP_409_CONFLICT
 
     assert (
         "already assigned"
         in response.json()["detail"]
     )
-
 
 
 def test_list_role_permissions(
@@ -53,7 +49,6 @@ def test_list_role_permissions(
     test_role,
     test_permission,
 ):
-
     client.post(
         f"/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
@@ -64,7 +59,7 @@ def test_list_role_permissions(
         headers=admin_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
 
@@ -76,14 +71,12 @@ def test_list_role_permissions(
     )
 
 
-
 def test_remove_permission(
     client,
     admin_headers,
     test_role,
     test_permission,
 ):
-
     client.post(
         f"/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
@@ -94,13 +87,12 @@ def test_remove_permission(
         headers=admin_headers,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     assert (
         response.json()["message"]
         == "Permission removed from role successfully"
     )
-
 
 
 def test_remove_unassigned_permission(
@@ -109,15 +101,61 @@ def test_remove_unassigned_permission(
     test_role,
     test_permission,
 ):
-
     response = client.delete(
         f"/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
-    assert response.status_code == 409
+    assert response.status_code == status.HTTP_409_CONFLICT
 
     assert (
         "not assigned"
         in response.json()["detail"]
     )
+
+
+def test_normal_user_cannot_assign_permissions(
+    client,
+    authenticated_headers,
+    test_role,
+    test_permission,
+):
+    response = client.post(
+        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_normal_user_cannot_remove_permissions(
+    client,
+    authenticated_headers,
+    admin_headers,
+    test_role,
+    test_permission,
+):
+    client.post(
+        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        headers=admin_headers,
+    )
+
+    response = client.delete(
+        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_normal_user_cannot_list_role_permissions(
+    client,
+    authenticated_headers,
+    test_role,
+):
+    response = client.get(
+        f"/roles/{test_role.id}/permissions",
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN

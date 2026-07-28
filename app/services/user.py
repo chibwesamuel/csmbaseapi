@@ -10,7 +10,6 @@ from app.repositories.user import (
     get_user_by_username,
     create_user as create_user_repository,
     update_user as update_user_repository,
-    update_user_status as update_user_status_repository,
     delete_user as delete_user_repository,
     update_user_status,
 )
@@ -21,22 +20,43 @@ from app.schemas.user import UserUpdate
 from app.core.exceptions import EmailAlreadyRegistered
 
 
+import math
+
+
 def list_users(
     db: Session,
     skip: int = 0,
     limit: int = 10,
     search: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
+    is_active: bool | None = None,
+    is_verified: bool | None = None,
+    is_superuser: bool | None = None,
 ):
+    """
+    Return paginated users with search,
+    sorting and filtering.
+    """
+
     users = get_users(
-        db,
-        skip,
-        limit,
-        search,
+        db=db,
+        skip=skip,
+        limit=limit,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        is_active=is_active,
+        is_verified=is_verified,
+        is_superuser=is_superuser,
     )
 
     total = count_users(
-        db,
-        search,
+        db=db,
+        search=search,
+        is_active=is_active,
+        is_verified=is_verified,
+        is_superuser=is_superuser,
     )
 
     page = (skip // limit) + 1

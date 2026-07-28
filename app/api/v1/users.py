@@ -21,6 +21,14 @@ from app.services.user import (
     delete_user,
 )
 
+from app.core.query_params import (
+    PageParam,
+    PageSizeParam,
+    SearchParam,
+    SortByParam,
+    SortOrderParam,
+)
+
 
 router = APIRouter(
     prefix="/users",
@@ -29,7 +37,7 @@ router = APIRouter(
 
 
 # ==========================================================
-# List Users (Pagination + Search)
+# List Users (Pagination + Search + Sorting + Filtering)
 # ==========================================================
 
 @router.get(
@@ -37,11 +45,14 @@ router = APIRouter(
     response_model=PaginatedUsersResponse,
 )
 def read_users(
-    page: int | None = None,
-    page_size: int | None = None,
-    skip: int = 0,
-    limit: int = 10,
-    search: str | None = None,
+    page: PageParam = 1,
+    page_size: PageSizeParam = 10,
+    search: SearchParam = None,
+    sort_by: SortByParam = None,
+    sort_order: SortOrderParam = "asc",
+    is_active: bool | None = None,
+    is_verified: bool | None = None,
+    is_superuser: bool | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission("users.view")
@@ -50,45 +61,38 @@ def read_users(
     """
     Retrieve users.
 
-    Supports both:
+    Supports:
 
-    • page/page_size
-    • skip/limit (legacy compatibility)
+    - Pagination
+    - Search
+    - Sorting
+    - Filtering
+
+    Examples:
+
+    /users?page=1&page_size=20
+
+    /users?search=sam
+
+    /users?sort_by=created_at&sort_order=desc
+
+    /users?is_active=true
     """
 
-    # Prefer page/page_size when provided
-    if page is not None or page_size is not None:
-
-        page = page or 1
-        page_size = page_size or 10
-
-        if page < 1:
-            page = 1
-
-        if page_size < 1:
-            page_size = 10
-
-        if page_size > 100:
-            page_size = 100
-
-        skip = (page - 1) * page_size
-        limit = page_size
-
-    else:
-        if skip < 0:
-            skip = 0
-
-        if limit < 1:
-            limit = 10
-
-        if limit > 100:
-            limit = 100
+    skip = (
+        page - 1
+    ) * page_size
 
     return list_users(
         db=db,
         skip=skip,
-        limit=limit,
+        limit=page_size,
         search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        is_active=is_active,
+        is_verified=is_verified,
+        is_superuser=is_superuser,
     )
 
 
