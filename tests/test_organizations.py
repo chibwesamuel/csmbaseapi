@@ -277,3 +277,91 @@ def test_delete_organization_not_found(client, admin_headers):
     assert response.status_code == 404
 
     assert response.json()["detail"] == "Organization not found"
+
+def test_creator_becomes_organization_owner(
+    client,
+    authenticated_headers,
+    db,
+):
+
+    unique = uuid.uuid4().hex[:8]
+
+    payload = {
+        "name": f"Owner Org {unique}",
+        "slug": f"owner-org-{unique}",
+    }
+
+    response = client.post(
+        "/organizations/",
+        json=payload,
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 201
+
+    organization_id = response.json()["id"]
+
+    from app.models.organization_member import OrganizationMember
+
+    membership = (
+        db.query(OrganizationMember)
+        .filter(
+            OrganizationMember.organization_id
+            == organization_id
+        )
+        .first()
+    )
+
+    assert membership is not None
+    assert membership.role == "owner"
+
+def test_normal_user_cannot_list_organizations(
+    client,
+    authenticated_headers,
+):
+
+    response = client.get(
+        "/organizations/",
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 403
+
+def test_normal_user_cannot_update_organization(
+    client,
+    authenticated_headers,
+):
+
+    response = client.put(
+        f"/organizations/{uuid.uuid4()}",
+        json={
+            "name": "Blocked Update",
+        },
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 403
+
+def test_normal_user_cannot_delete_organization(
+    client,
+    authenticated_headers,
+):
+
+    response = client.delete(
+        f"/organizations/{uuid.uuid4()}",
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 403
+
+def test_invalid_organization_uuid(
+    client,
+    admin_headers,
+):
+
+    response = client.get(
+        "/organizations/not-a-uuid",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422

@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from app.core.enums import OrganizationRole
+
 
 class OrganizationMemberCreate(BaseModel):
     """
@@ -10,7 +12,7 @@ class OrganizationMemberCreate(BaseModel):
     """
 
     user_id: UUID
-    role: str = "member"
+    role: OrganizationRole = OrganizationRole.MEMBER
 
 
 class OrganizationMemberUpdate(BaseModel):
@@ -18,7 +20,7 @@ class OrganizationMemberUpdate(BaseModel):
     Data used to update an organization membership.
     """
 
-    role: str | None = None
+    role: OrganizationRole | None = None
 
 
 class OrganizationMemberUserResponse(BaseModel):

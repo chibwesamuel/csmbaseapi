@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 
 from app.dependencies.permissions import require_permission
+from app.dependencies.organization import get_current_organization
 
 from app.models.user import User
 
@@ -47,6 +48,7 @@ def get_organization_members(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
+    organization = Depends(get_current_organization),
     current_user: User = Depends(
         require_permission("organizations.members.view")
     ),
@@ -72,6 +74,7 @@ def create_organization_member(
     organization_id: UUID,
     member_data: OrganizationMemberCreate,
     db: Session = Depends(get_db),
+    organization = Depends(get_current_organization),
     current_user: User = Depends(
         require_permission("organizations.members.create")
     ),

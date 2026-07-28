@@ -32,6 +32,8 @@ def list_organizations(
     skip: int = 0,
     limit: int = 10,
     search: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
 ):
     organizations = get_organizations(
         db,
@@ -55,7 +57,7 @@ def list_organizations(
 
 def get_organization(
     db: Session,
-    organization_id,
+    organization_id: UUID,
 ):
     return get_organization_by_id(
         db,
@@ -115,7 +117,7 @@ def create_new_organization(
 
 def update_existing_organization(
     db: Session,
-    organization_id,
+    organization_id: UUID,
     organization_data: OrganizationUpdate,
 ):
     organization = get_organization_by_id(
@@ -135,7 +137,7 @@ def update_existing_organization(
 
 def delete_existing_organization(
     db: Session,
-    organization_id,
+    organization_id: UUID,
 ):
     organization = get_organization_by_id(
         db,

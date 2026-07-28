@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -74,7 +75,7 @@ def read_organizations(
     response_model=OrganizationResponse,
 )
 def read_organization(
-    organization_id: str,
+    organization_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission("organizations.view")
@@ -140,7 +141,7 @@ def create_organization(
     response_model=OrganizationResponse,
 )
 def update_organization(
-    organization_id: str,
+    organization_id: UUID,
     organization_data: OrganizationUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
@@ -167,7 +168,7 @@ def update_organization(
     "/{organization_id}",
 )
 def delete_organization(
-    organization_id: str,
+    organization_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission("organizations.delete")
