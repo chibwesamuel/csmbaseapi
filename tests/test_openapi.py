@@ -8,8 +8,8 @@ def test_openapi_schema(client):
     assert data["info"]["title"] == "PulseAPI"
     assert "version" in data["info"]
 
-    assert "/auth/login" in data["paths"]
-    assert "/auth/register" in data["paths"]
+    assert "/api/v1/auth/login" in data["paths"]
+    assert "/api/v1/auth/register" in data["paths"]
     assert "/graphql" in data["paths"]
 
 

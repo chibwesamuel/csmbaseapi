@@ -27,28 +27,36 @@ class OrganizationInvitationAccept(
     BaseModel
 ):
     """
-    Schema for accepting an invitation.
+    Schema used when accepting an invitation.
     """
 
     token: str
 
 
-class OrganizationInvitationResponse(
+class OrganizationInvitationBase(
     BaseModel
 ):
     """
-    Schema returned for organization invitations.
+    Shared fields for organization invitations.
+    """
+
+    email: EmailStr
+
+    role_id: UUID
+
+
+class OrganizationInvitationResponse(
+    OrganizationInvitationBase
+):
+    """
+    Response schema for organization invitations.
     """
 
     id: UUID
 
     organization_id: UUID
 
-    role_id: UUID
-
     invited_by: UUID
-
-    email: EmailStr
 
     token: str
 
@@ -60,7 +68,24 @@ class OrganizationInvitationResponse(
 
     created_at: datetime
 
-
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+class PaginatedOrganizationInvitationsResponse(
+    BaseModel
+):
+    """
+    Paginated organization invitation response.
+    """
+
+    total: int
+
+    skip: int
+
+    limit: int
+
+    invitations: list[
+        OrganizationInvitationResponse
+    ]

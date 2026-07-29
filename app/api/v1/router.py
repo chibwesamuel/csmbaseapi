@@ -16,6 +16,9 @@ from app.api.v1.organizations import (
 from app.api.v1.organization_members import (
     router as organization_members_router,
 )
+from app.api.v1.organization_invitations import (
+    router as organization_invitations_router,
+)
 
 
 api_router = APIRouter()
@@ -36,3 +39,7 @@ api_router.include_router(user_roles_router)
 api_router.include_router(organizations_router)
 
 api_router.include_router(organization_members_router)
+
+api_router.include_router(
+    organization_invitations_router
+)

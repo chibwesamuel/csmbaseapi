@@ -182,13 +182,6 @@ app.add_exception_handler(
 # REST API Routes
 # ==========================================================
 
-# Legacy routes (temporary compatibility)
-app.include_router(
-    api_router,
-)
-
-
-# Versioned routes
 app.include_router(
     api_router,
     prefix="/api/v1",
