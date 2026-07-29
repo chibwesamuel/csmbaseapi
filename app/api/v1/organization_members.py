@@ -1,5 +1,3 @@
-# app/api/v1/organization_members.py
-
 from uuid import UUID
 
 from fastapi import (
@@ -16,6 +14,7 @@ from app.database.session import get_db
 from app.dependencies.permissions import require_permission
 from app.dependencies.organization import get_current_organization
 
+from app.models.organization import Organization
 from app.models.user import User
 
 from app.schemas.organization_member import (
@@ -48,7 +47,7 @@ def get_organization_members(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
-    organization = Depends(get_current_organization),
+    organization=Depends(get_current_organization),
     current_user: User = Depends(
         require_permission("organizations.members.view")
     ),
@@ -74,7 +73,6 @@ def create_organization_member(
     organization_id: UUID,
     member_data: OrganizationMemberCreate,
     db: Session = Depends(get_db),
-    organization = Depends(get_current_organization),
     current_user: User = Depends(
         require_permission("organizations.members.create")
     ),
@@ -82,6 +80,20 @@ def create_organization_member(
     """
     Add a user to an organization.
     """
+
+    organization = (
+        db.query(Organization)
+        .filter(
+            Organization.id == organization_id
+        )
+        .first()
+    )
+
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
 
     try:
         return add_member(
@@ -95,10 +107,7 @@ def create_organization_member(
 
         message = str(error)
 
-        if message in (
-            "Organization not found",
-            "User not found",
-        ):
+        if message == "User not found":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=message,

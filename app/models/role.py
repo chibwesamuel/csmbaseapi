@@ -1,6 +1,9 @@
 import uuid
 
-from sqlalchemy import Column, String
+from sqlalchemy import (
+    Column,
+    String,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -38,4 +41,9 @@ class Role(Base):
         "User",
         secondary="user_roles",
         back_populates="roles",
+    )
+
+    organization_invitations = relationship(
+        "OrganizationInvitation",
+        back_populates="role",
     )
