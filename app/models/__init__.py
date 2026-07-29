@@ -1,3 +1,5 @@
+# app/models/__init__.py
+
 from app.models.user import User
 from app.models.role import Role
 from app.models.permission import Permission
@@ -6,6 +8,8 @@ from app.models.user_role import UserRole
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 from app.models.refresh_token import RefreshToken
+from app.models.organization_invitation import OrganizationInvitation
+
 
 __all__ = [
     "User",
@@ -16,6 +20,5 @@ __all__ = [
     "Organization",
     "OrganizationMember",
     "RefreshToken",
-    "role_permissions",
-    "UserRole",
+    "OrganizationInvitation",
 ]

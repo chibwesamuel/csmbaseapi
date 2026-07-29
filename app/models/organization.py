@@ -115,6 +115,12 @@ class Organization(Base):
         cascade="all, delete-orphan",
     )
 
+    invitations = relationship(
+        "OrganizationInvitation",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         return (
             f"<Organization(id={self.id}, "

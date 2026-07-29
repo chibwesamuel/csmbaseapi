@@ -1,16 +1,21 @@
 import uuid
+
 from datetime import datetime
 
-from sqlalchemy import Boolean
-from sqlalchemy import DateTime
-from sqlalchemy import String
-from sqlalchemy import func
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    String,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
 from app.database.base import Base
-from sqlalchemy.orm import relationship
 
 
 class User(Base):
@@ -101,5 +106,12 @@ class User(Base):
     refresh_tokens = relationship(
         "RefreshToken",
         back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    sent_invitations = relationship(
+        "OrganizationInvitation",
+        foreign_keys="OrganizationInvitation.invited_by",
+        back_populates="inviter",
         cascade="all, delete-orphan",
     )
