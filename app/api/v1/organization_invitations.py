@@ -59,11 +59,7 @@ router = APIRouter(
     response_model=OrganizationInvitationResponse,
     status_code=status.HTTP_201_CREATED,
 )
-@router.post(
-    "/{organization_id}/invitations",
-    response_model=OrganizationInvitationResponse,
-    status_code=status.HTTP_201_CREATED,
-)
+
 def create_invitation(
     organization_id: UUID,
     invitation_data: OrganizationInvitationCreate,
