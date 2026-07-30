@@ -1,6 +1,11 @@
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import (
+    Depends,
+    HTTPException,
+    status,
+)
+
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -22,6 +27,10 @@ def get_current_organization(
 ) -> Organization:
     """
     Retrieve organization and verify membership.
+
+    Order of checks:
+    1. User must belong to the organization.
+    2. Organization must exist.
     """
 
     membership = (
@@ -56,15 +65,33 @@ def get_current_organization(
     return organization
 
 
-
 def require_organization_admin(
     organization_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Require user to be owner or admin of organization.
+    Require user to be an organization owner or admin.
+
+    Order of checks:
+    1. Organization must exist.
+    2. User must be a member.
+    3. User must have admin privileges.
     """
+
+    organization = (
+        db.query(Organization)
+        .filter(
+            Organization.id == organization_id
+        )
+        .first()
+    )
+
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
 
     membership = (
         db.query(OrganizationMember)
@@ -100,8 +127,27 @@ def require_organization_owner(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Require user to be organization owner.
+    Require user to be the organization owner.
+
+    Order of checks:
+    1. Organization must exist.
+    2. User must be a member.
+    3. User must be the owner.
     """
+
+    organization = (
+        db.query(Organization)
+        .filter(
+            Organization.id == organization_id
+        )
+        .first()
+    )
+
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
 
     membership = (
         db.query(OrganizationMember)

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.dependencies.permissions import require_superuser
+from app.dependencies.permissions import require_permission
 from app.models.user import User
 
 from app.schemas.role import (
@@ -19,6 +19,7 @@ from app.services.role import (
     list_roles,
     update_existing_role,
 )
+
 
 router = APIRouter(
     prefix="/roles",
@@ -37,7 +38,9 @@ def read_roles(
     sort_by: str | None = None,
     sort_order: str = "asc",
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("roles.view")
+    ),
 ):
     """
     Retrieve roles.
@@ -47,14 +50,6 @@ def read_roles(
     - Pagination
     - Search
     - Sorting
-
-    Examples:
-
-    /roles?page=1&page_size=20
-
-    /roles?search=admin
-
-    /roles?sort_by=name&sort_order=desc
     """
 
     if page < 1:
@@ -87,7 +82,9 @@ def read_roles(
 def read_role(
     role_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("roles.view")
+    ),
 ):
     role = get_role(
         db,
@@ -111,7 +108,9 @@ def read_role(
 def create_role(
     role_data: RoleCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("roles.create")
+    ),
 ):
     role = create_new_role(
         db,
@@ -135,7 +134,9 @@ def update_role(
     role_id: str,
     role_data: RoleUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("roles.update")
+    ),
 ):
     role = update_existing_role(
         db,
@@ -158,7 +159,9 @@ def update_role(
 def delete_role(
     role_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("roles.delete")
+    ),
 ):
     deleted = delete_existing_role(
         db,

@@ -8,12 +8,13 @@ from fastapi import (
 )
 
 from sqlalchemy.orm import Session
+
 from app.schemas.permission import PermissionResponse
 
 from app.database.session import get_db
 
 from app.dependencies.permissions import (
-    require_superuser,
+    require_permission,
 )
 
 from app.models.user import User
@@ -37,7 +38,9 @@ router = APIRouter(
 def get_role_permissions(
     role_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("roles.view")
+    ),
 ):
     """
     Retrieve all permissions assigned to a role.
@@ -65,7 +68,9 @@ def add_role_permission(
     role_id: UUID,
     permission_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("roles.update")
+    ),
 ):
     """
     Assign a permission to a role.
@@ -79,6 +84,7 @@ def add_role_permission(
         )
 
     except ValueError as error:
+
         message = str(error)
 
         if message in (
@@ -109,7 +115,9 @@ def remove_role_permission(
     role_id: UUID,
     permission_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("roles.update")
+    ),
 ):
     """
     Remove a permission from a role.
