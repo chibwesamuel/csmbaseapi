@@ -7,14 +7,14 @@ def register_and_login(client, unique_user):
     """
 
     register = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json=unique_user,
     )
 
     assert register.status_code == status.HTTP_201_CREATED
 
     login = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": unique_user["email"],
             "password": unique_user["password"],
@@ -58,7 +58,7 @@ def test_refresh_access_token(
     )
 
     response = client.post(
-        "/auth/refresh",
+        "/api/v1/auth/refresh",
         json={
             "refresh_token": tokens["refresh_token"],
         },
@@ -83,7 +83,7 @@ def test_invalid_refresh_token(
     """
 
     response = client.post(
-        "/auth/refresh",
+        "/api/v1/auth/refresh",
         json={
             "refresh_token": "invalid-token",
         },
@@ -112,7 +112,7 @@ def test_logout_revokes_refresh_token(
     )
 
     response = client.post(
-        "/auth/logout",
+        "/api/v1/auth/logout",
         json={
             "refresh_token": tokens["refresh_token"],
         },
@@ -139,7 +139,7 @@ def test_revoked_refresh_token_cannot_be_used(
     )
 
     logout = client.post(
-        "/auth/logout",
+        "/api/v1/auth/logout",
         json={
             "refresh_token": tokens["refresh_token"],
         },
@@ -148,7 +148,7 @@ def test_revoked_refresh_token_cannot_be_used(
     assert logout.status_code == status.HTTP_200_OK
 
     response = client.post(
-        "/auth/refresh",
+        "/api/v1/auth/refresh",
         json={
             "refresh_token": tokens["refresh_token"],
         },
@@ -171,7 +171,7 @@ def test_logout_unknown_refresh_token(
     """
 
     response = client.post(
-        "/auth/logout",
+        "/api/v1/auth/logout",
         json={
             "refresh_token": "does-not-exist",
         },

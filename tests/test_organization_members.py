@@ -9,7 +9,7 @@ def create_test_organization(client, headers):
     unique = uuid.uuid4().hex[:8]
 
     response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json={
             "name": f"Org {unique}",
             "slug": f"org-{unique}",
@@ -31,7 +31,7 @@ def create_test_user(client):
     unique = uuid.uuid4().hex[:8]
 
     response = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -59,7 +59,7 @@ def test_add_member(client, admin_headers):
     user = create_test_user(client)
 
     response = client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -90,7 +90,7 @@ def test_duplicate_member(client, admin_headers):
     }
 
     first = client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json=payload,
         headers=admin_headers,
     )
@@ -98,7 +98,7 @@ def test_duplicate_member(client, admin_headers):
     assert first.status_code == 201
 
     second = client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json=payload,
         headers=admin_headers,
     )
@@ -118,7 +118,7 @@ def test_add_member_organization_not_found(
     user = create_test_user(client)
 
     response = client.post(
-        f"/organizations/{uuid.uuid4()}/members",
+        f"/api/v1/organizations/{uuid.uuid4()}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -144,7 +144,7 @@ def test_add_member_user_not_found(
     )
 
     response = client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": str(uuid.uuid4()),
             "role": "member",
@@ -167,7 +167,7 @@ def test_list_members(client, admin_headers):
     )
 
     response = client.get(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         headers=admin_headers,
     )
 
@@ -189,7 +189,7 @@ def test_update_member_role(client, admin_headers):
     user = create_test_user(client)
 
     client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -198,7 +198,7 @@ def test_update_member_role(client, admin_headers):
     )
 
     response = client.patch(
-        f"/organizations/{organization['id']}/members/{user['id']}",
+        f"/api/v1/organizations/{organization['id']}/members/{user['id']}",
         json={
             "role": "admin",
         },
@@ -221,7 +221,7 @@ def test_update_missing_membership(
     )
 
     response = client.patch(
-        f"/organizations/{organization['id']}/members/{uuid.uuid4()}",
+        f"/api/v1/organizations/{organization['id']}/members/{uuid.uuid4()}",
         json={
             "role": "admin",
         },
@@ -245,7 +245,7 @@ def test_remove_member(client, admin_headers):
     user = create_test_user(client)
 
     client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -254,7 +254,7 @@ def test_remove_member(client, admin_headers):
     )
 
     response = client.delete(
-        f"/organizations/{organization['id']}/members/{user['id']}",
+        f"/api/v1/organizations/{organization['id']}/members/{user['id']}",
         headers=admin_headers,
     )
 
@@ -276,7 +276,7 @@ def test_remove_missing_member(
     )
 
     response = client.delete(
-        f"/organizations/{organization['id']}/members/{uuid.uuid4()}",
+        f"/api/v1/organizations/{organization['id']}/members/{uuid.uuid4()}",
         headers=admin_headers,
     )
 
@@ -298,7 +298,7 @@ def test_cannot_remove_last_owner(
     )
 
     members = client.get(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         headers=admin_headers,
     )
 
@@ -307,7 +307,7 @@ def test_cannot_remove_last_owner(
     owner_id = members.json()["members"][0]["user_id"]
 
     response = client.delete(
-        f"/organizations/{organization['id']}/members/{owner_id}",
+        f"/api/v1/organizations/{organization['id']}/members/{owner_id}",
         headers=admin_headers,
     )
 
@@ -329,7 +329,7 @@ def test_cannot_change_last_owner_role(
     )
 
     members = client.get(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         headers=admin_headers,
     )
 
@@ -338,7 +338,7 @@ def test_cannot_change_last_owner_role(
     owner_id = members.json()["members"][0]["user_id"]
 
     response = client.patch(
-        f"/organizations/{organization['id']}/members/{owner_id}",
+        f"/api/v1/organizations/{organization['id']}/members/{owner_id}",
         json={
             "role": "admin",
         },
@@ -361,7 +361,7 @@ def test_normal_user_cannot_list_members(
     )
 
     response = client.get(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         headers=authenticated_headers,
     )
 
@@ -379,7 +379,7 @@ def test_normal_user_cannot_add_member(
     user = create_test_user(client)
 
     response = client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -402,7 +402,7 @@ def test_normal_user_cannot_update_member_role(
     user = create_test_user(client)
 
     client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -411,7 +411,7 @@ def test_normal_user_cannot_update_member_role(
     )
 
     response = client.patch(
-        f"/organizations/{organization['id']}/members/{user['id']}",
+        f"/api/v1/organizations/{organization['id']}/members/{user['id']}",
         json={
             "role": "admin",
         },
@@ -433,7 +433,7 @@ def test_normal_user_cannot_remove_member(
     user = create_test_user(client)
 
     client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -442,7 +442,7 @@ def test_normal_user_cannot_remove_member(
     )
 
     response = client.delete(
-        f"/organizations/{organization['id']}/members/{user['id']}",
+        f"/api/v1/organizations/{organization['id']}/members/{user['id']}",
         headers=authenticated_headers,
     )
 

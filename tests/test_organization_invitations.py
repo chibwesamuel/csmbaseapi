@@ -14,7 +14,7 @@ def create_test_organization(
     }
 
     response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -35,7 +35,7 @@ def test_list_organization_invitations_empty(
     )
 
     response = client.get(
-        f"/organizations/{organization['id']}/invitations",
+        f"/api/v1/organizations/{organization['id']}/invitations",
         headers=authenticated_headers,
     )
 
@@ -55,7 +55,7 @@ def test_create_invitation_organization_not_found(
 ):
 
     response = client.post(
-        f"/organizations/{uuid.uuid4()}/invitations",
+        f"/api/v1/organizations/{uuid.uuid4()}/invitations",
         json={
             "email": "invite@example.com",
             "role_id": str(test_role.id),
@@ -71,7 +71,7 @@ def test_get_invitation_invalid_token(
 ):
 
     response = client.get(
-        "/organizations/invitations/invalid-token",
+        "/api/v1/organizations/invitations/invalid-token",
     )
 
     assert response.status_code == 404
@@ -83,7 +83,7 @@ def test_accept_invalid_invitation(
 ):
 
     response = client.post(
-        "/organizations/invitations/accept",
+        "/api/v1/organizations/invitations/accept",
         json={
             "token": "invalid-token",
         },
@@ -104,7 +104,7 @@ def test_cancel_unknown_invitation(
     )
 
     response = client.delete(
-        f"/organizations/{organization['id']}/invitations/{uuid.uuid4()}",
+        f"/api/v1/organizations/{organization['id']}/invitations/{uuid.uuid4()}",
         headers=authenticated_headers,
     )
 

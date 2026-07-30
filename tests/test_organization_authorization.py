@@ -13,7 +13,7 @@ def create_organization(
     unique = uuid.uuid4().hex[:8]
 
     response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json={
             "name": f"{name_prefix} {unique}",
             "slug": f"{name_prefix.lower()}-{unique}",
@@ -36,7 +36,7 @@ def create_user(client):
     unique = uuid.uuid4().hex[:8]
 
     response = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -58,7 +58,7 @@ def login_user(client, user):
     """
 
     response = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": user["email"],
             "password": "Password123!",
@@ -89,7 +89,7 @@ def test_member_can_access_own_organization_members(
     )
 
     response = client.get(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         headers=admin_headers,
     )
 
@@ -127,7 +127,7 @@ def test_user_from_another_organization_cannot_access_members(
     # User is not a member of either organization.
 
     response = client.get(
-        f"/organizations/{organization_one['id']}/members",
+        f"/api/v1/organizations/{organization_one['id']}/members",
         headers=user_headers,
     )
 
@@ -156,7 +156,7 @@ def test_normal_member_cannot_add_members(
     )
 
     response = client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -187,7 +187,7 @@ def test_admin_can_manage_members(
     user = create_user(client)
 
     response = client.post(
-        f"/organizations/{organization['id']}/members",
+        f"/api/v1/organizations/{organization['id']}/members",
         json={
             "user_id": user["id"],
             "role": "member",
@@ -213,7 +213,7 @@ def test_owner_can_delete_organization(
     )
 
     response = client.delete(
-        f"/organizations/{organization['id']}",
+        f"/api/v1/organizations/{organization['id']}",
         headers=admin_headers,
     )
 

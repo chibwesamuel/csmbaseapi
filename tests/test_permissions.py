@@ -16,7 +16,7 @@ def test_create_permission(client, admin_headers):
     payload = create_permission_payload()
 
     response = client.post(
-        "/permissions/",
+        "/api/v1/permissions/",
         json=payload,
         headers=admin_headers,
     )
@@ -36,7 +36,7 @@ def test_duplicate_permission(
     payload = create_permission_payload()
 
     first = client.post(
-        "/permissions/",
+        "/api/v1/permissions/",
         json=payload,
         headers=admin_headers,
     )
@@ -44,7 +44,7 @@ def test_duplicate_permission(
     assert first.status_code == status.HTTP_201_CREATED
 
     second = client.post(
-        "/permissions/",
+        "/api/v1/permissions/",
         json=payload,
         headers=admin_headers,
     )
@@ -62,7 +62,7 @@ def test_list_permissions(
 ):
 
     response = client.get(
-        "/permissions/",
+        "/api/v1/permissions/",
         headers=admin_headers,
     )
 
@@ -84,7 +84,7 @@ def test_get_permission(
 ):
 
     response = client.get(
-        f"/permissions/{test_permission.id}",
+        f"/api/v1/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
@@ -101,7 +101,7 @@ def test_get_missing_permission(
 ):
 
     response = client.get(
-        f"/permissions/{uuid.uuid4()}",
+        f"/api/v1/permissions/{uuid.uuid4()}",
         headers=admin_headers,
     )
 
@@ -119,7 +119,7 @@ def test_update_permission(
 ):
 
     response = client.put(
-        f"/permissions/{test_permission.id}",
+        f"/api/v1/permissions/{test_permission.id}",
         json={
             "description": "Updated description",
         },
@@ -141,7 +141,7 @@ def test_update_missing_permission(
 ):
 
     response = client.put(
-        f"/permissions/{uuid.uuid4()}",
+        f"/api/v1/permissions/{uuid.uuid4()}",
         json={
             "description": "Updated",
         },
@@ -163,7 +163,7 @@ def test_delete_permission(
     payload = create_permission_payload()
 
     created = client.post(
-        "/permissions/",
+        "/api/v1/permissions/",
         json=payload,
         headers=admin_headers,
     )
@@ -171,7 +171,7 @@ def test_delete_permission(
     permission_id = created.json()["id"]
 
     response = client.delete(
-        f"/permissions/{permission_id}",
+        f"/api/v1/permissions/{permission_id}",
         headers=admin_headers,
     )
 
@@ -188,7 +188,7 @@ def test_delete_missing_permission(
 ):
 
     response = client.delete(
-        f"/permissions/{uuid.uuid4()}",
+        f"/api/v1/permissions/{uuid.uuid4()}",
         headers=admin_headers,
     )
 
@@ -205,7 +205,7 @@ def test_normal_user_cannot_access_permissions(
 ):
 
     response = client.get(
-        "/permissions/",
+        "/api/v1/permissions/",
         headers=authenticated_headers,
     )
 

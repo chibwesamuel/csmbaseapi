@@ -14,7 +14,7 @@ def test_create_user(client, admin_headers):
     }
 
     response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json=payload,
         headers=admin_headers,
     )
@@ -29,7 +29,7 @@ def test_create_user(client, admin_headers):
 def test_list_users(client, admin_headers):
 
     response = client.get(
-        "/users/",
+        "/api/v1/users/",
         headers=admin_headers,
     )
 
@@ -54,7 +54,7 @@ def test_get_user(client, admin_headers):
     }
 
     create_response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json=payload,
         headers=admin_headers,
     )
@@ -64,7 +64,7 @@ def test_get_user(client, admin_headers):
     user_id = create_response.json()["id"]
 
     response = client.get(
-        f"/users/{user_id}",
+        f"/api/v1/users/{user_id}",
         headers=admin_headers,
     )
 
@@ -89,7 +89,7 @@ def test_update_user(client, admin_headers):
     }
 
     create_response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json=payload,
         headers=admin_headers,
     )
@@ -104,7 +104,7 @@ def test_update_user(client, admin_headers):
     }
 
     response = client.put(
-        f"/users/{user_id}",
+        f"/api/v1/users/{user_id}",
         json=update_payload,
         headers=admin_headers,
     )
@@ -130,7 +130,7 @@ def test_deactivate_user(client, admin_headers):
     }
 
     create_response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json=payload,
         headers=admin_headers,
     )
@@ -140,7 +140,7 @@ def test_deactivate_user(client, admin_headers):
     user_id = create_response.json()["id"]
 
     response = client.patch(
-        f"/users/{user_id}/deactivate",
+        f"/api/v1/users/{user_id}/deactivate",
         headers=admin_headers,
     )
 
@@ -164,7 +164,7 @@ def test_activate_user(client, admin_headers):
     }
 
     create_response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json=payload,
         headers=admin_headers,
     )
@@ -174,14 +174,14 @@ def test_activate_user(client, admin_headers):
     user_id = create_response.json()["id"]
 
     deactivate_response = client.patch(
-        f"/users/{user_id}/deactivate",
+        f"/api/v1/users/{user_id}/deactivate",
         headers=admin_headers,
     )
 
     assert deactivate_response.status_code == 200
 
     response = client.patch(
-        f"/users/{user_id}/activate",
+        f"/api/v1/users/{user_id}/activate",
         headers=admin_headers,
     )
 
@@ -205,7 +205,7 @@ def test_delete_user(client, admin_headers):
     }
 
     create_response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json=payload,
         headers=admin_headers,
     )
@@ -215,7 +215,7 @@ def test_delete_user(client, admin_headers):
     user_id = create_response.json()["id"]
 
     response = client.delete(
-        f"/users/{user_id}",
+        f"/api/v1/users/{user_id}",
         headers=admin_headers,
     )
 
@@ -239,7 +239,7 @@ def test_create_duplicate_email(client, admin_headers):
     }
 
     first_response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json=payload,
         headers=admin_headers,
     )
@@ -255,7 +255,7 @@ def test_create_duplicate_email(client, admin_headers):
     }
 
     second_response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json=duplicate_payload,
         headers=admin_headers,
     )
