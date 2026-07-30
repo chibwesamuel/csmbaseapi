@@ -79,7 +79,7 @@ def registered_user(
 ):
 
     response = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json=unique_user,
     )
 
@@ -165,7 +165,7 @@ def authenticated_headers(
 ):
 
     response = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": registered_user.email,
             "password": unique_user["password"],
@@ -206,7 +206,7 @@ def admin_user(client, db, admin_role):
     payload["password"] = password
 
     response = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json=payload,
     )
 
@@ -246,7 +246,7 @@ def admin_user(client, db, admin_role):
 def admin_headers(client, admin_user):
 
     response = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": admin_user.email,
             "password": admin_user.test_password,

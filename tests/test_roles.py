@@ -19,7 +19,7 @@ def test_create_role(
     payload = create_role_payload()
 
     response = client.post(
-        "/roles/",
+        "/api/v1/roles/",
         json=payload,
         headers=admin_headers,
     )
@@ -39,7 +39,7 @@ def test_duplicate_role(
     payload = create_role_payload()
 
     first = client.post(
-        "/roles/",
+        "/api/v1/roles/",
         json=payload,
         headers=admin_headers,
     )
@@ -47,7 +47,7 @@ def test_duplicate_role(
     assert first.status_code == status.HTTP_201_CREATED
 
     second = client.post(
-        "/roles/",
+        "/api/v1/roles/",
         json=payload,
         headers=admin_headers,
     )
@@ -64,7 +64,7 @@ def test_list_roles(
     admin_headers,
 ):
     response = client.get(
-        "/roles/",
+        "/api/v1/roles/",
         headers=admin_headers,
     )
 
@@ -88,7 +88,7 @@ def test_get_role(
     payload = create_role_payload()
 
     created = client.post(
-        "/roles/",
+        "/api/v1/roles/",
         json=payload,
         headers=admin_headers,
     )
@@ -98,7 +98,7 @@ def test_get_role(
     role_id = created.json()["id"]
 
     response = client.get(
-        f"/roles/{role_id}",
+        f"/api/v1/roles/{role_id}",
         headers=admin_headers,
     )
 
@@ -114,7 +114,7 @@ def test_get_missing_role(
     admin_headers,
 ):
     response = client.get(
-        f"/roles/{uuid.uuid4()}",
+        f"/api/v1/roles/{uuid.uuid4()}",
         headers=admin_headers,
     )
 
@@ -132,7 +132,7 @@ def test_update_role(
     payload = create_role_payload()
 
     created = client.post(
-        "/roles/",
+        "/api/v1/roles/",
         json=payload,
         headers=admin_headers,
     )
@@ -140,7 +140,7 @@ def test_update_role(
     role_id = created.json()["id"]
 
     response = client.put(
-        f"/roles/{role_id}",
+        f"/api/v1/roles/{role_id}",
         json={
             "description": "Updated role description",
         },
@@ -161,7 +161,7 @@ def test_update_missing_role(
     admin_headers,
 ):
     response = client.put(
-        f"/roles/{uuid.uuid4()}",
+        f"/api/v1/roles/{uuid.uuid4()}",
         json={
             "description": "Updated",
         },
@@ -182,7 +182,7 @@ def test_delete_role(
     payload = create_role_payload()
 
     created = client.post(
-        "/roles/",
+        "/api/v1/roles/",
         json=payload,
         headers=admin_headers,
     )
@@ -192,7 +192,7 @@ def test_delete_role(
     role_id = created.json()["id"]
 
     response = client.delete(
-        f"/roles/{role_id}",
+        f"/api/v1/roles/{role_id}",
         headers=admin_headers,
     )
 
@@ -208,7 +208,7 @@ def test_delete_missing_role(
     admin_headers,
 ):
     response = client.delete(
-        f"/roles/{uuid.uuid4()}",
+        f"/api/v1/roles/{uuid.uuid4()}",
         headers=admin_headers,
     )
 
@@ -224,7 +224,7 @@ def test_normal_user_cannot_access_roles(
     authenticated_headers,
 ):
     response = client.get(
-        "/roles/",
+        "/api/v1/roles/",
         headers=authenticated_headers,
     )
 

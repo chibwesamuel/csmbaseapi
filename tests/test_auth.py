@@ -3,7 +3,7 @@ from fastapi import status
 
 def test_register_user(client, unique_user):
     response = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json=unique_user,
     )
 
@@ -17,12 +17,12 @@ def test_register_user(client, unique_user):
 
 def test_duplicate_registration(client, unique_user):
     client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json=unique_user,
     )
 
     response = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json=unique_user,
     )
 
@@ -31,12 +31,12 @@ def test_duplicate_registration(client, unique_user):
 
 def test_login(client, unique_user):
     client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json=unique_user,
     )
 
     response = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": unique_user["email"],
             "password": unique_user["password"],
@@ -53,7 +53,7 @@ def test_login(client, unique_user):
 
 def test_invalid_login(client):
     response = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": "wrong@example.com",
             "password": "wrongpassword",
@@ -65,12 +65,12 @@ def test_invalid_login(client):
 
 def test_get_current_user(client, unique_user):
     client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json=unique_user,
     )
 
     login = client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={
             "email": unique_user["email"],
             "password": unique_user["password"],
@@ -82,7 +82,7 @@ def test_get_current_user(client, unique_user):
     token = login.json()["access_token"]
 
     response = client.get(
-        "/auth/me",
+        "/api/v1/auth/me",
         headers={
             "Authorization": f"Bearer {token}"
         },
@@ -96,7 +96,7 @@ def test_get_current_user(client, unique_user):
 
 def test_get_current_user_without_token(client):
     response = client.get(
-        "/auth/me",
+        "/api/v1/auth/me",
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -104,7 +104,7 @@ def test_get_current_user_without_token(client):
 
 def test_get_current_user_with_invalid_token(client):
     response = client.get(
-        "/auth/me",
+        "/api/v1/auth/me",
         headers={
             "Authorization": "Bearer invalid.token.value"
         },
@@ -118,7 +118,7 @@ def test_admin_endpoint_denies_normal_user(
     authenticated_headers,
 ):
     response = client.get(
-        "/auth/admin-test",
+        "/api/v1/auth/admin-test",
         headers=authenticated_headers,
     )
 
@@ -130,7 +130,7 @@ def test_admin_endpoint_allows_superuser(
     admin_headers,
 ):
     response = client.get(
-        "/auth/admin-test",
+        "/api/v1/auth/admin-test",
         headers=admin_headers,
     )
 

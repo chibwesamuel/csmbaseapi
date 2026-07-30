@@ -8,7 +8,7 @@ def test_assign_permission(
     test_permission,
 ):
     response = client.post(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
@@ -26,12 +26,12 @@ def test_duplicate_permission_assignment(
     test_permission,
 ):
     client.post(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
     response = client.post(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
@@ -50,12 +50,12 @@ def test_list_role_permissions(
     test_permission,
 ):
     client.post(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
     response = client.get(
-        f"/roles/{test_role.id}/permissions",
+        f"/api/v1/roles/{test_role.id}/permissions",
         headers=admin_headers,
     )
 
@@ -78,12 +78,12 @@ def test_remove_permission(
     test_permission,
 ):
     client.post(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
     response = client.delete(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
@@ -102,7 +102,7 @@ def test_remove_unassigned_permission(
     test_permission,
 ):
     response = client.delete(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
@@ -121,7 +121,7 @@ def test_normal_user_cannot_assign_permissions(
     test_permission,
 ):
     response = client.post(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=authenticated_headers,
     )
 
@@ -136,12 +136,12 @@ def test_normal_user_cannot_remove_permissions(
     test_permission,
 ):
     client.post(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=admin_headers,
     )
 
     response = client.delete(
-        f"/roles/{test_role.id}/permissions/{test_permission.id}",
+        f"/api/v1/roles/{test_role.id}/permissions/{test_permission.id}",
         headers=authenticated_headers,
     )
 
@@ -154,7 +154,7 @@ def test_normal_user_cannot_list_role_permissions(
     test_role,
 ):
     response = client.get(
-        f"/roles/{test_role.id}/permissions",
+        f"/api/v1/roles/{test_role.id}/permissions",
         headers=authenticated_headers,
     )
 

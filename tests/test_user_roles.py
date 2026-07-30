@@ -8,7 +8,7 @@ def test_assign_role(client, admin_headers, db, admin_role):
     unique = uuid.uuid4().hex[:8]
 
     user = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -23,7 +23,7 @@ def test_assign_role(client, admin_headers, db, admin_role):
     user_id = user.json()["id"]
 
     response = client.post(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=admin_headers,
     )
 
@@ -44,7 +44,7 @@ def test_duplicate_role_assignment(
     unique = uuid.uuid4().hex[:8]
 
     user = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -57,12 +57,12 @@ def test_duplicate_role_assignment(
     user_id = user.json()["id"]
 
     client.post(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=admin_headers,
     )
 
     second = client.post(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=admin_headers,
     )
 
@@ -80,7 +80,7 @@ def test_list_user_roles(
     unique = uuid.uuid4().hex[:8]
 
     user = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -93,12 +93,12 @@ def test_list_user_roles(
     user_id = user.json()["id"]
 
     client.post(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=admin_headers,
     )
 
     response = client.get(
-        f"/users/{user_id}/roles",
+        f"/api/v1/users/{user_id}/roles",
         headers=admin_headers,
     )
 
@@ -120,7 +120,7 @@ def test_remove_role(
     unique = uuid.uuid4().hex[:8]
 
     user = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -133,12 +133,12 @@ def test_remove_role(
     user_id = user.json()["id"]
 
     client.post(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=admin_headers,
     )
 
     response = client.delete(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=admin_headers,
     )
 
@@ -158,7 +158,7 @@ def test_remove_unassigned_role(
     unique = uuid.uuid4().hex[:8]
 
     user = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -171,7 +171,7 @@ def test_remove_unassigned_role(
     user_id = user.json()["id"]
 
     response = client.delete(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=admin_headers,
     )
 
@@ -187,7 +187,7 @@ def test_normal_user_cannot_assign_roles(
     unique = uuid.uuid4().hex[:8]
 
     user = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -202,7 +202,7 @@ def test_normal_user_cannot_assign_roles(
     user_id = user.json()["id"]
 
     response = client.post(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=authenticated_headers,
     )
 
@@ -218,7 +218,7 @@ def test_normal_user_cannot_remove_roles(
     unique = uuid.uuid4().hex[:8]
 
     user = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -234,7 +234,7 @@ def test_normal_user_cannot_remove_roles(
 
     # Assign the role as an admin first
     assign = client.post(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=admin_headers,
     )
 
@@ -242,7 +242,7 @@ def test_normal_user_cannot_remove_roles(
 
     # Attempt to remove it as a normal user
     response = client.delete(
-        f"/users/{user_id}/roles/{admin_role.id}",
+        f"/api/v1/users/{user_id}/roles/{admin_role.id}",
         headers=authenticated_headers,
     )
 
@@ -255,7 +255,7 @@ def test_normal_user_cannot_list_user_roles(
     unique = uuid.uuid4().hex[:8]
 
     user = client.post(
-        "/auth/register",
+        "/api/v1/auth/register",
         json={
             "email": f"user_{unique}@example.com",
             "username": f"user_{unique}",
@@ -270,7 +270,7 @@ def test_normal_user_cannot_list_user_roles(
     user_id = user.json()["id"]
 
     response = client.get(
-        f"/users/{user_id}/roles",
+        f"/api/v1/users/{user_id}/roles",
         headers=authenticated_headers,
     )
 

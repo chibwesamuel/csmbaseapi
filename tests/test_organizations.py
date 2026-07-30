@@ -12,7 +12,7 @@ def test_create_organization(client, authenticated_headers):
     }
 
     response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -36,13 +36,13 @@ def test_duplicate_slug(client, authenticated_headers):
     }
 
     client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
 
     response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -62,7 +62,7 @@ def test_duplicate_email(client, authenticated_headers):
     }
 
     first_response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -70,7 +70,7 @@ def test_duplicate_email(client, authenticated_headers):
     assert first_response.status_code == 201
 
     second_response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -81,7 +81,7 @@ def test_duplicate_email(client, authenticated_headers):
 def test_list_organizations(client, admin_headers):
 
     response = client.get(
-        "/organizations/",
+        "/api/v1/organizations/",
         headers=admin_headers,
     )
 
@@ -104,7 +104,7 @@ def test_get_my_organizations(client, authenticated_headers):
     }
 
     create = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -112,7 +112,7 @@ def test_get_my_organizations(client, authenticated_headers):
     assert create.status_code == 201
 
     response = client.get(
-        "/organizations/my",
+        "/api/v1/organizations/my",
         headers=authenticated_headers,
     )
 
@@ -139,7 +139,7 @@ def test_get_organization(client, admin_headers, authenticated_headers):
     }
 
     create_response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -149,7 +149,7 @@ def test_get_organization(client, admin_headers, authenticated_headers):
     organization_id = create_response.json()["id"]
 
     response = client.get(
-        f"/organizations/{organization_id}",
+        f"/api/v1/organizations/{organization_id}",
         headers=admin_headers,
     )
 
@@ -172,7 +172,7 @@ def test_update_organization(client, admin_headers, authenticated_headers):
     }
 
     create_response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -187,7 +187,7 @@ def test_update_organization(client, admin_headers, authenticated_headers):
     }
 
     response = client.put(
-        f"/organizations/{organization_id}",
+        f"/api/v1/organizations/{organization_id}",
         json=update_payload,
         headers=admin_headers,
     )
@@ -211,7 +211,7 @@ def test_delete_organization(client, admin_headers, authenticated_headers):
     }
 
     create_response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -221,7 +221,7 @@ def test_delete_organization(client, admin_headers, authenticated_headers):
     organization_id = create_response.json()["id"]
 
     response = client.delete(
-        f"/organizations/{organization_id}",
+        f"/api/v1/organizations/{organization_id}",
         headers=admin_headers,
     )
 
@@ -237,7 +237,7 @@ def test_get_organization_not_found(client, admin_headers):
     fake_id = uuid.uuid4()
 
     response = client.get(
-        f"/organizations/{fake_id}",
+        f"/api/v1/organizations/{fake_id}",
         headers=admin_headers,
     )
 
@@ -255,7 +255,7 @@ def test_update_organization_not_found(client, admin_headers):
     }
 
     response = client.put(
-        f"/organizations/{fake_id}",
+        f"/api/v1/organizations/{fake_id}",
         json=payload,
         headers=admin_headers,
     )
@@ -270,7 +270,7 @@ def test_delete_organization_not_found(client, admin_headers):
     fake_id = uuid.uuid4()
 
     response = client.delete(
-        f"/organizations/{fake_id}",
+        f"/api/v1/organizations/{fake_id}",
         headers=admin_headers,
     )
 
@@ -292,7 +292,7 @@ def test_creator_becomes_organization_owner(
     }
 
     response = client.post(
-        "/organizations/",
+        "/api/v1/organizations/",
         json=payload,
         headers=authenticated_headers,
     )
@@ -321,7 +321,7 @@ def test_normal_user_cannot_list_organizations(
 ):
 
     response = client.get(
-        "/organizations/",
+        "/api/v1/organizations/",
         headers=authenticated_headers,
     )
 
@@ -333,7 +333,7 @@ def test_normal_user_cannot_update_organization(
 ):
 
     response = client.put(
-        f"/organizations/{uuid.uuid4()}",
+        f"/api/v1/organizations/{uuid.uuid4()}",
         json={
             "name": "Blocked Update",
         },
@@ -348,7 +348,7 @@ def test_normal_user_cannot_delete_organization(
 ):
 
     response = client.delete(
-        f"/organizations/{uuid.uuid4()}",
+        f"/api/v1/organizations/{uuid.uuid4()}",
         headers=authenticated_headers,
     )
 
@@ -360,7 +360,7 @@ def test_invalid_organization_uuid(
 ):
 
     response = client.get(
-        "/organizations/not-a-uuid",
+        "/api/v1/organizations/not-a-uuid",
         headers=admin_headers,
     )
 
