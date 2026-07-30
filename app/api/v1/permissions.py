@@ -1,8 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
+
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.dependencies.permissions import require_superuser
+from app.dependencies.permissions import require_permission
 from app.models.user import User
 
 from app.schemas.permission import (
@@ -19,6 +25,7 @@ from app.services.permission import (
     update_existing_permission,
     delete_existing_permission,
 )
+
 
 router = APIRouter(
     prefix="/permissions",
@@ -37,7 +44,9 @@ def read_permissions(
     sort_by: str | None = None,
     sort_order: str = "asc",
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("permissions.view")
+    ),
 ):
     """
     Retrieve permissions.
@@ -47,14 +56,6 @@ def read_permissions(
     - Pagination
     - Search
     - Sorting
-
-    Examples:
-
-    /permissions?page=1&page_size=20
-
-    /permissions?search=user
-
-    /permissions?sort_by=name&sort_order=desc
     """
 
     if page < 1:
@@ -87,7 +88,9 @@ def read_permissions(
 def read_permission(
     permission_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("permissions.view")
+    ),
 ):
     permission = get_permission(
         db,
@@ -111,7 +114,9 @@ def read_permission(
 def create_permission(
     permission_data: PermissionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("permissions.create")
+    ),
 ):
     permission = create_new_permission(
         db,
@@ -135,7 +140,9 @@ def update_permission(
     permission_id: str,
     permission_data: PermissionUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("permissions.update")
+    ),
 ):
     permission = update_existing_permission(
         db,
@@ -152,11 +159,15 @@ def update_permission(
     return permission
 
 
-@router.delete("/{permission_id}")
+@router.delete(
+    "/{permission_id}"
+)
 def delete_permission(
     permission_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("permissions.delete")
+    ),
 ):
     deleted = delete_existing_permission(
         db,

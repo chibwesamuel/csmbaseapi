@@ -6,10 +6,15 @@ from fastapi import (
     HTTPException,
     status,
 )
+
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.dependencies.permissions import require_superuser
+
+from app.dependencies.permissions import (
+    require_permission,
+)
+
 from app.models.user import User
 
 from app.schemas.role import RoleResponse
@@ -35,7 +40,9 @@ def assign_role(
     user_id: UUID,
     role_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.update")
+    ),
 ):
     """
     Assign a role to a user.
@@ -82,7 +89,9 @@ def remove_role(
     user_id: UUID,
     role_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.update")
+    ),
 ):
     """
     Remove a role from a user.
@@ -131,7 +140,9 @@ def remove_role(
 def get_roles(
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_superuser),
+    current_user: User = Depends(
+        require_permission("users.view")
+    ),
 ):
     """
     Retrieve all roles assigned to a user.

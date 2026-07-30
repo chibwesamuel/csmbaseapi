@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 
 from app.dependencies.permissions import require_permission
-from app.dependencies.organization import get_current_organization
 
 from app.models.organization import Organization
 from app.models.user import User
@@ -38,6 +37,31 @@ router = APIRouter(
 )
 
 
+def check_organization_exists(
+    db: Session,
+    organization_id: UUID,
+):
+    """
+    Ensure the organization exists.
+    """
+
+    organization = (
+        db.query(Organization)
+        .filter(
+            Organization.id == organization_id
+        )
+        .first()
+    )
+
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
+
+    return organization
+
+
 @router.get(
     "/{organization_id}/members",
     response_model=PaginatedOrganizationMembersResponse,
@@ -47,14 +71,20 @@ def get_organization_members(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
-    organization=Depends(get_current_organization),
     current_user: User = Depends(
-        require_permission("organizations.members.view")
+        require_permission(
+            "organizations.members.view"
+        )
     ),
 ):
     """
     List all members belonging to an organization.
     """
+
+    check_organization_exists(
+        db,
+        organization_id,
+    )
 
     return list_members(
         db,
@@ -74,26 +104,19 @@ def create_organization_member(
     member_data: OrganizationMemberCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_permission("organizations.members.create")
+        require_permission(
+            "organizations.members.create"
+        )
     ),
 ):
     """
     Add a user to an organization.
     """
 
-    organization = (
-        db.query(Organization)
-        .filter(
-            Organization.id == organization_id
-        )
-        .first()
+    check_organization_exists(
+        db,
+        organization_id,
     )
-
-    if not organization:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found",
-        )
 
     try:
         return add_member(
@@ -113,7 +136,9 @@ def create_organization_member(
                 detail=message,
             )
 
-        if message == "User is already a member of this organization":
+        if message == (
+            "User is already a member of this organization"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=message,
@@ -135,12 +160,19 @@ def update_organization_member(
     member_data: OrganizationMemberUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_permission("organizations.members.update")
+        require_permission(
+            "organizations.members.update"
+        )
     ),
 ):
     """
     Update an organization member's role.
     """
+
+    check_organization_exists(
+        db,
+        organization_id,
+    )
 
     try:
         return change_member_role(
@@ -174,15 +206,21 @@ def delete_organization_member(
     user_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_permission("organizations.members.delete")
+        require_permission(
+            "organizations.members.delete"
+        )
     ),
 ):
     """
     Remove a user from an organization.
     """
 
-    try:
+    check_organization_exists(
+        db,
+        organization_id,
+    )
 
+    try:
         remove_member(
             db,
             organization_id,
