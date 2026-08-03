@@ -11,7 +11,6 @@ from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 
 
-
 def get_membership(
     organization: Organization = Depends(
         get_current_organization
@@ -35,16 +34,13 @@ def get_membership(
         .first()
     )
 
-
     if not membership:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Organization membership required",
         )
 
-
     return membership
-
 
 
 def require_organization_owner(
@@ -56,15 +52,13 @@ def require_organization_owner(
     Require organization owner privileges.
     """
 
-    if membership.role != "owner":
+    if membership.role.name != "owner":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Organization owner privileges required",
         )
 
-
     return membership
-
 
 
 def require_organization_admin(
@@ -76,7 +70,7 @@ def require_organization_admin(
     Require organization admin privileges.
     """
 
-    if membership.role not in (
+    if membership.role.name not in (
         "owner",
         "admin",
     ):
@@ -85,9 +79,7 @@ def require_organization_admin(
             detail="Organization admin privileges required",
         )
 
-
     return membership
-
 
 
 def require_organization_member(

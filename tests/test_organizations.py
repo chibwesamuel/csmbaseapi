@@ -313,7 +313,7 @@ def test_creator_becomes_organization_owner(
     )
 
     assert membership is not None
-    assert membership.role == "owner"
+    assert membership.role.name == "owner"
 
 def test_normal_user_cannot_list_organizations(
     client,

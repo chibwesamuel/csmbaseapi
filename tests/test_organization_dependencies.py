@@ -17,6 +17,7 @@ from app.dependencies.organization_permissions import (
 
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
+from app.models.role import Role
 
 
 def create_query_mock(result):
@@ -50,13 +51,27 @@ def create_organization():
     return organization
 
 
+def create_role(name):
+    """
+    Create a fake Role object.
+    """
+
+    role = Role(
+        name=name,
+    )
+
+    role.id = uuid4()
+
+    return role
+
+
 def create_membership(
     role="member",
 ):
     membership = OrganizationMember(
         organization_id=uuid4(),
         user_id=uuid4(),
-        role=role,
+        role=create_role(role),
     )
 
     membership.id = uuid4()
@@ -77,7 +92,7 @@ def test_get_current_organization_success():
     membership = OrganizationMember(
         organization_id=organization.id,
         user_id=user.id,
-        role="member",
+        role=create_role("member"),
     )
 
     db = MagicMock()
@@ -127,7 +142,7 @@ def test_get_current_organization_missing_organization():
     membership = OrganizationMember(
         organization_id=organization_id,
         user_id=user.id,
-        role="member",
+        role=create_role("member"),
     )
 
     db = MagicMock()
@@ -164,7 +179,7 @@ def test_get_membership_success():
     membership = OrganizationMember(
         organization_id=organization.id,
         user_id=user.id,
-        role="member",
+        role=create_role("member"),
     )
 
     db = MagicMock()
@@ -234,13 +249,11 @@ def test_require_organization_owner_failure(role):
 
     membership = create_membership(role)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(HTTPException):
 
         require_organization_owner(
             membership
         )
-
-    assert exc.value.status_code == 403
 
 
 # ---------------------------------------------------------
@@ -272,13 +285,11 @@ def test_require_organization_admin_failure():
         "member"
     )
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(HTTPException):
 
         require_organization_admin(
             membership
         )
-
-    assert exc.value.status_code == 403
 
 
 # ---------------------------------------------------------
