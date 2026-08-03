@@ -1,9 +1,16 @@
 from datetime import datetime
 from uuid import UUID
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
-from app.core.enums import OrganizationRole
+
+OrganizationRoleType = Literal[
+    "owner",
+    "admin",
+    "member",
+]
 
 
 class OrganizationMemberCreate(BaseModel):
@@ -12,7 +19,7 @@ class OrganizationMemberCreate(BaseModel):
     """
 
     user_id: UUID
-    role: OrganizationRole = OrganizationRole.MEMBER
+    role: OrganizationRoleType = "member"
 
 
 class OrganizationMemberUpdate(BaseModel):
@@ -20,7 +27,7 @@ class OrganizationMemberUpdate(BaseModel):
     Data used to update an organization membership.
     """
 
-    role: OrganizationRole | None = None
+    role: OrganizationRoleType | None = None
 
 
 class OrganizationMemberUserResponse(BaseModel):
@@ -31,6 +38,19 @@ class OrganizationMemberUserResponse(BaseModel):
     id: UUID
     username: str
     email: str
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+
+class OrganizationMemberRoleResponse(BaseModel):
+    """
+    Role information returned with organization membership.
+    """
+
+    id: UUID
+    name: str
 
     model_config = ConfigDict(
         from_attributes=True
@@ -49,7 +69,7 @@ class OrganizationMemberResponse(BaseModel):
 
     user: OrganizationMemberUserResponse
 
-    role: str
+    role: OrganizationMemberRoleResponse
 
     created_at: datetime
 

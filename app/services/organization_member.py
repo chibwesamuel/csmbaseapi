@@ -2,10 +2,9 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.core.enums import OrganizationRole
-
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
+from app.models.role import Role
 
 from app.repositories.organization import (
     get_organization_by_id,
@@ -65,7 +64,7 @@ def add_member(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-    role: OrganizationRole | str = OrganizationRole.MEMBER,
+    role_id: UUID,
 ) -> OrganizationMember:
     """
     Add a user to an organization.
@@ -91,28 +90,35 @@ def add_member(
             "User not found"
         )
 
+    role = (
+        db.query(Role)
+        .filter(
+            Role.id == role_id
+        )
+        .first()
+    )
+
+    if role is None:
+        raise ValueError(
+            "Role not found"
+        )
+
     existing_member = get_member(
         db,
         organization_id,
         user_id,
     )
 
-    if existing_member is not None:
+    if existing_member:
         raise ValueError(
             "User is already a member of this organization"
         )
-
-    role_value = (
-        role.value
-        if isinstance(role, OrganizationRole)
-        else role
-    )
 
     return create_member(
         db,
         organization_id,
         user_id,
-        role_value,
+        role_id,
     )
 
 
@@ -120,7 +126,7 @@ def change_member_role(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-    role: OrganizationRole | str,
+    role_id: UUID | None,
 ) -> OrganizationMember:
     """
     Change a member's role.
@@ -137,15 +143,27 @@ def change_member_role(
             "Membership not found"
         )
 
-    role_value = (
-        role.value
-        if isinstance(role, OrganizationRole)
-        else role
+    if role_id is None:
+        raise ValueError(
+            "Role not found"
+        )
+
+    new_role = (
+        db.query(Role)
+        .filter(
+            Role.id == role_id
+        )
+        .first()
     )
 
+    if new_role is None:
+        raise ValueError(
+            "Role not found"
+        )
+
     if (
-        member.role == OrganizationRole.OWNER.value
-        and role_value != OrganizationRole.OWNER.value
+        member.role.name == "owner"
+        and new_role.name != "owner"
     ):
         owner_count = count_owners(
             db,
@@ -160,7 +178,7 @@ def change_member_role(
     return update_member_role(
         db,
         member,
-        role_value,
+        role_id,
     )
 
 
@@ -184,7 +202,7 @@ def remove_member(
             "Membership not found"
         )
 
-    if member.role == OrganizationRole.OWNER.value:
+    if member.role.name == "owner":
 
         owner_count = count_owners(
             db,

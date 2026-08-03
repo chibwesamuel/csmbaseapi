@@ -5,28 +5,30 @@ from datetime import datetime
 from sqlalchemy import (
     DateTime,
     ForeignKey,
-    String,
     UniqueConstraint,
     func,
 )
+
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
 from app.database.base import Base
-
-
-# Organization member roles
-OWNER = "owner"
-ADMIN = "admin"
-MEMBER = "member"
 
 
 class OrganizationMember(Base):
     """
     Represents a user's membership within an organization.
 
-    A user may belong to many organizations, but only once
-    per organization.
+    A user may belong to many organizations,
+    but only once per organization.
+
+    Organization permissions are determined
+    by the assigned organization role.
     """
 
     __tablename__ = "organization_members"
@@ -63,10 +65,13 @@ class OrganizationMember(Base):
         nullable=False,
     )
 
-    role: Mapped[str] = mapped_column(
-        String(50),
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "roles.id",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
-        default=MEMBER,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -74,6 +79,8 @@ class OrganizationMember(Base):
         server_default=func.now(),
         nullable=False,
     )
+
+    # Relationships
 
     organization = relationship(
         "Organization",
@@ -84,3 +91,18 @@ class OrganizationMember(Base):
         "User",
         back_populates="organizations",
     )
+
+    role = relationship(
+        "Role",
+        back_populates="organization_members",
+    )
+
+    def __repr__(self) -> str:
+        return (
+            "<OrganizationMember("
+            f"id={self.id}, "
+            f"organization_id={self.organization_id}, "
+            f"user_id={self.user_id}, "
+            f"role_id={self.role_id}"
+            ")>"
+        )
