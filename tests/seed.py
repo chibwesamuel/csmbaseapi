@@ -35,6 +35,11 @@ DEFAULT_PERMISSIONS = [
     "projects.update",
     "projects.delete",
     "projects.members.manage",
+
+    "tasks.view",
+    "tasks.create",
+    "tasks.update",
+    "tasks.delete",
 ]
 
 

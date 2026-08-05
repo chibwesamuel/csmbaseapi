@@ -7,7 +7,6 @@ from sqlalchemy import (
     ForeignKey,
     String,
     Text,
-    UniqueConstraint,
     func,
 )
 
@@ -22,20 +21,12 @@ from sqlalchemy.orm import (
 from app.database.base import Base
 
 
-class Project(Base):
+class Task(Base):
     """
-    Represents a project belonging to an organization.
+    Represents a task belonging to a project.
     """
 
-    __tablename__ = "projects"
-
-    __table_args__ = (
-        UniqueConstraint(
-            "organization_id",
-            "slug",
-            name="uq_project_slug_per_organization",
-        ),
-    )
+    __tablename__ = "tasks"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -43,10 +34,10 @@ class Project(Base):
         default=uuid.uuid4,
     )
 
-    organization_id: Mapped[uuid.UUID] = mapped_column(
+    project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
-            "organizations.id",
+            "projects.id",
             ondelete="CASCADE",
         ),
         nullable=False,
@@ -61,13 +52,17 @@ class Project(Base):
         nullable=False,
     )
 
-    name: Mapped[str] = mapped_column(
-        String(150),
-        nullable=False,
+    assigned_to: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "users.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
     )
 
-    slug: Mapped[str] = mapped_column(
-        String(150),
+    title: Mapped[str] = mapped_column(
+        String(200),
         nullable=False,
     )
 
@@ -77,9 +72,20 @@ class Project(Base):
     )
 
     status: Mapped[str] = mapped_column(
-        String(20),
-        default="active",
+        String(30),
+        default="todo",
         nullable=False,
+    )
+
+    priority: Mapped[str] = mapped_column(
+        String(20),
+        default="medium",
+        nullable=False,
+    )
+
+    due_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -95,32 +101,31 @@ class Project(Base):
         nullable=False,
     )
 
-    organization = relationship(
-        "Organization",
-        back_populates="projects",
+
+    project = relationship(
+        "Project",
+        back_populates="tasks",
     )
+
 
     creator = relationship(
         "User",
-        back_populates="created_projects",
+        foreign_keys=[created_by],
+        back_populates="created_tasks",
     )
 
-    members = relationship(
-        "ProjectMember",
-        back_populates="project",
-        cascade="all, delete-orphan",
+
+    assignee = relationship(
+        "User",
+        foreign_keys=[assigned_to],
+        back_populates="assigned_tasks",
     )
 
-    tasks = relationship(
-        "Task",
-        back_populates="project",
-        cascade="all, delete-orphan",
-    )
 
     def __repr__(self) -> str:
         return (
-            f"<Project("
+            f"<Task("
             f"id={self.id}, "
-            f"name='{self.name}', "
-            f"organization_id={self.organization_id})>"
+            f"title='{self.title}', "
+            f"status='{self.status}')>"
         )
