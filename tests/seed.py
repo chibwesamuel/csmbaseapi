@@ -34,6 +34,7 @@ DEFAULT_PERMISSIONS = [
     "projects.create",
     "projects.update",
     "projects.delete",
+    "projects.members.manage",
 ]
 
 

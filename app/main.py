@@ -80,6 +80,12 @@ tags_metadata = [
             "System health and API status endpoints."
         ),
     },
+    {
+    "name": "Project Members",
+    "description": (
+        "Manage users assigned to projects."
+    ),
+},
 ]
 
 
