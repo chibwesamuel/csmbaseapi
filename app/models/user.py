@@ -121,6 +121,18 @@ class User(Base):
         back_populates="creator",
     )
 
+    created_tasks = relationship(
+        "Task",
+        foreign_keys="Task.created_by",
+        back_populates="creator",
+    )
+
+    assigned_tasks = relationship(
+        "Task",
+        foreign_keys="Task.assigned_to",
+        back_populates="assignee",
+    )
+
     project_memberships = relationship(
         "ProjectMember",
         back_populates="user",

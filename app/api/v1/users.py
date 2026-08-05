@@ -100,6 +100,25 @@ def read_users(
 # Get Single User
 # ==========================================================
 
+# ==========================================================
+# Get Current User Profile
+# ==========================================================
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+)
+def read_current_user(
+    current_user: User = Depends(
+        require_permission("users.view")
+    ),
+):
+    """
+    Retrieve currently authenticated user.
+    """
+
+    return current_user
+
 @router.get(
     "/{user_id}",
     response_model=UserResponse,

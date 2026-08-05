@@ -9,6 +9,7 @@ from app.models.refresh_token import RefreshToken
 from app.models.organization_invitation import OrganizationInvitation
 from app.models.project import Project
 from app.models.project_member import ProjectMember
+from app.models.task import Task
 
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "OrganizationInvitation",
     "Project",
     "ProjectMember",
+    "Task",
 ]
