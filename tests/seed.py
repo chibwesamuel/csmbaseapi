@@ -29,6 +29,11 @@ DEFAULT_PERMISSIONS = [
     "organizations.members.create",
     "organizations.members.update",
     "organizations.members.delete",
+
+    "projects.view",
+    "projects.create",
+    "projects.update",
+    "projects.delete",
 ]
 
 

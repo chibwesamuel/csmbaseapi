@@ -38,6 +38,11 @@ from app.models.role import Role
 from app.models.permission import Permission
 from app.models.role_permission import role_permissions
 from app.models.user_role import UserRole
+from app.models.organization import Organization
+from app.models.organization_member import OrganizationMember
+from app.models.refresh_token import RefreshToken
+from app.models.organization_invitation import OrganizationInvitation
+from app.models.project import Project
 
 
 target_metadata = Base.metadata
