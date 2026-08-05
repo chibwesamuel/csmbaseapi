@@ -105,6 +105,12 @@ class Project(Base):
         back_populates="created_projects",
     )
 
+    members = relationship(
+        "ProjectMember",
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         return (
             f"<Project("

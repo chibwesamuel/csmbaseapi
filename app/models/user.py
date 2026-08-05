@@ -120,3 +120,9 @@ class User(Base):
         "Project",
         back_populates="creator",
     )
+
+    project_memberships = relationship(
+        "ProjectMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
