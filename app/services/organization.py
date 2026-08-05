@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.organization_member import OrganizationMember
 from app.models.user import User
+from app.models.role import Role
 
 from app.repositories.organization import (
     count_organizations,
@@ -25,6 +26,26 @@ from app.schemas.organization import (
     OrganizationUpdate,
     PaginatedOrganizationsResponse,
 )
+
+
+def get_role_by_name(
+    db: Session,
+    role_name: str,
+) -> Role | None:
+    """
+    Retrieve a role by name.
+
+    Handles different casing:
+    owner / Owner / OWNER
+    """
+
+    return (
+        db.query(Role)
+        .filter(
+            Role.name.ilike(role_name)
+        )
+        .first()
+    )
 
 
 def list_organizations(
@@ -73,11 +94,6 @@ def create_new_organization(
     """
     Create an organization and assign
     the creator as the owner.
-
-    Returns:
-        Organization instance on success.
-        "slug_exists" if the slug already exists.
-        "email_exists" if the email already exists.
     """
 
     existing_slug = get_organization_by_slug(
@@ -89,6 +105,7 @@ def create_new_organization(
         return "slug_exists"
 
     if organization_data.email:
+
         existing_email = get_organization_by_email(
             db,
             organization_data.email,
@@ -102,13 +119,26 @@ def create_new_organization(
         organization_data,
     )
 
+    owner_role = get_role_by_name(
+        db,
+        "owner",
+    )
+
+    if not owner_role:
+        db.rollback()
+
+        raise ValueError(
+            "Owner role not found"
+        )
+
     membership = OrganizationMember(
         organization_id=organization.id,
         user_id=current_user.id,
-        role="owner",
+        role_id=owner_role.id,
     )
 
     db.add(membership)
+
     db.commit()
     db.refresh(organization)
 

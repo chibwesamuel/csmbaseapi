@@ -9,15 +9,12 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
+
 from app.dependencies.auth import get_current_user
 
 from app.models.user import User
 from app.models.organization import Organization
-from app.models.organization_member import (
-    OrganizationMember,
-    OWNER,
-    ADMIN,
-)
+from app.models.organization_member import OrganizationMember
 
 
 def get_current_organization(
@@ -108,9 +105,9 @@ def require_organization_admin(
             detail="User does not belong to this organization",
         )
 
-    if membership.role not in (
-        OWNER,
-        ADMIN,
+    if membership.role.name not in (
+        "owner",
+        "admin",
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -118,7 +115,6 @@ def require_organization_admin(
         )
 
     return membership
-
 
 
 def require_organization_owner(
@@ -164,7 +160,7 @@ def require_organization_owner(
             detail="User does not belong to this organization",
         )
 
-    if membership.role != OWNER:
+    if membership.role.name != "owner":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Organization owner privileges required",

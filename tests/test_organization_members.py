@@ -47,9 +47,6 @@ def create_test_user(client):
 
 
 def test_add_member(client, admin_headers):
-    """
-    Admin creates an organization then adds another user.
-    """
 
     organization = create_test_organization(
         client,
@@ -72,7 +69,7 @@ def test_add_member(client, admin_headers):
     data = response.json()
 
     assert data["user_id"] == user["id"]
-    assert data["role"] == "member"
+    assert data["role"]["name"] == "member"
 
 
 def test_duplicate_member(client, admin_headers):
@@ -207,7 +204,7 @@ def test_update_member_role(client, admin_headers):
 
     assert response.status_code == 200
 
-    assert response.json()["role"] == "admin"
+    assert response.json()["role"]["name"] == "admin"
 
 
 def test_update_missing_membership(
@@ -351,10 +348,12 @@ def test_cannot_change_last_owner_role(
         "An organization must have at least one owner"
     )
 
+
 def test_normal_user_cannot_list_members(
     client,
     authenticated_headers,
 ):
+
     organization = create_test_organization(
         client,
         authenticated_headers,
@@ -367,10 +366,12 @@ def test_normal_user_cannot_list_members(
 
     assert response.status_code == 403
 
+
 def test_normal_user_cannot_add_member(
     client,
     authenticated_headers,
 ):
+
     organization = create_test_organization(
         client,
         authenticated_headers,
@@ -389,11 +390,13 @@ def test_normal_user_cannot_add_member(
 
     assert response.status_code == 403
 
+
 def test_normal_user_cannot_update_member_role(
     client,
     authenticated_headers,
     admin_headers,
 ):
+
     organization = create_test_organization(
         client,
         admin_headers,
@@ -420,11 +423,13 @@ def test_normal_user_cannot_update_member_role(
 
     assert response.status_code == 403
 
+
 def test_normal_user_cannot_remove_member(
     client,
     authenticated_headers,
     admin_headers,
 ):
+
     organization = create_test_organization(
         client,
         admin_headers,

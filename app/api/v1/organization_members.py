@@ -15,6 +15,7 @@ from app.dependencies.permissions import require_permission
 
 from app.models.organization import Organization
 from app.models.user import User
+from app.models.role import Role
 
 from app.schemas.organization_member import (
     OrganizationMemberCreate,
@@ -60,6 +61,31 @@ def check_organization_exists(
         )
 
     return organization
+
+
+def get_role_by_name(
+    db: Session,
+    role_name: str,
+):
+    """
+    Resolve organization role name into Role model.
+    """
+
+    role = (
+        db.query(Role)
+        .filter(
+            Role.name == role_name.lower()
+        )
+        .first()
+    )
+
+    if role is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Role not found",
+        )
+
+    return role
 
 
 @router.get(
@@ -118,19 +144,28 @@ def create_organization_member(
         organization_id,
     )
 
+    role = get_role_by_name(
+        db,
+        member_data.role,
+    )
+
     try:
         return add_member(
             db,
             organization_id,
             member_data.user_id,
-            member_data.role,
+            role.id,
         )
 
     except ValueError as error:
 
         message = str(error)
 
-        if message == "User not found":
+        if message in (
+            "Organization not found",
+            "User not found",
+            "Role not found",
+        ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=message,
@@ -174,19 +209,30 @@ def update_organization_member(
         organization_id,
     )
 
+    role = None
+
+    if member_data.role is not None:
+        role = get_role_by_name(
+            db,
+            member_data.role,
+        )
+
     try:
         return change_member_role(
             db,
             organization_id,
             user_id,
-            member_data.role,
+            role.id if role else None,
         )
 
     except ValueError as error:
 
         message = str(error)
 
-        if message == "Membership not found":
+        if message in (
+            "Membership not found",
+            "Role not found",
+        ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=message,

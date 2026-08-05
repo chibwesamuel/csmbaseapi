@@ -29,10 +29,19 @@ DEFAULT_PERMISSIONS = [
     "organizations.members.create",
     "organizations.members.update",
     "organizations.members.delete",
+
+    "projects.view",
+    "projects.create",
+    "projects.update",
+    "projects.delete",
+    "projects.members.manage",
 ]
 
 
 def seed_permissions(db: Session):
+    """
+    Seed all application permissions.
+    """
 
     permissions = []
 
@@ -40,7 +49,9 @@ def seed_permissions(db: Session):
 
         permission = (
             db.query(Permission)
-            .filter(Permission.name == name)
+            .filter(
+                Permission.name == name
+            )
             .first()
         )
 
@@ -62,10 +73,15 @@ def seed_permissions(db: Session):
 
 
 def seed_admin_role(db: Session):
+    """
+    Seed the global system administrator role.
+    """
 
     role = (
         db.query(Role)
-        .filter(Role.name == "Admin")
+        .filter(
+            Role.name == "Admin"
+        )
         .first()
     )
 
@@ -89,3 +105,55 @@ def seed_admin_role(db: Session):
     db.commit()
 
     return role
+
+
+def seed_organization_roles(db: Session):
+    """
+    Seed organization membership roles.
+
+    These roles are referenced by:
+    organization_members.role_id
+    """
+
+    organization_roles = [
+        {
+            "name": "owner",
+            "description": "Organization Owner",
+        },
+        {
+            "name": "admin",
+            "description": "Organization Administrator",
+        },
+        {
+            "name": "member",
+            "description": "Organization Member",
+        },
+    ]
+
+    roles = []
+
+    for role_data in organization_roles:
+
+        role = (
+            db.query(Role)
+            .filter(
+                Role.name == role_data["name"]
+            )
+            .first()
+        )
+
+        if role is None:
+
+            role = Role(
+                name=role_data["name"],
+                description=role_data["description"],
+            )
+
+            db.add(role)
+            db.flush()
+
+        roles.append(role)
+
+    db.commit()
+
+    return roles

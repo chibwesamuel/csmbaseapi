@@ -4,7 +4,9 @@ from sqlalchemy import (
     Column,
     String,
 )
+
 from sqlalchemy.dialects.postgresql import UUID
+
 from sqlalchemy.orm import relationship
 
 from app.database.base import Base
@@ -45,5 +47,10 @@ class Role(Base):
 
     organization_invitations = relationship(
         "OrganizationInvitation",
+        back_populates="role",
+    )
+
+    organization_members = relationship(
+        "OrganizationMember",
         back_populates="role",
     )

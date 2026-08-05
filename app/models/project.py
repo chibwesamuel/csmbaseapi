@@ -5,6 +5,8 @@ from datetime import datetime
 from sqlalchemy import (
     DateTime,
     ForeignKey,
+    String,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -20,24 +22,18 @@ from sqlalchemy.orm import (
 from app.database.base import Base
 
 
-class OrganizationMember(Base):
+class Project(Base):
     """
-    Represents a user's membership within an organization.
-
-    A user may belong to many organizations,
-    but only once per organization.
-
-    Organization permissions are determined
-    by the assigned organization role.
+    Represents a project belonging to an organization.
     """
 
-    __tablename__ = "organization_members"
+    __tablename__ = "projects"
 
     __table_args__ = (
         UniqueConstraint(
             "organization_id",
-            "user_id",
-            name="uq_organization_member",
+            "slug",
+            name="uq_project_slug_per_organization",
         ),
     )
 
@@ -56,21 +52,33 @@ class OrganizationMember(Base):
         nullable=False,
     )
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
+    created_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
             "users.id",
-            ondelete="CASCADE",
+            ondelete="RESTRICT",
         ),
         nullable=False,
     )
 
-    role_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey(
-            "roles.id",
-            ondelete="RESTRICT",
-        ),
+    name: Mapped[str] = mapped_column(
+        String(150),
+        nullable=False,
+    )
+
+    slug: Mapped[str] = mapped_column(
+        String(150),
+        nullable=False,
+    )
+
+    description: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default="active",
         nullable=False,
     )
 
@@ -80,29 +88,33 @@ class OrganizationMember(Base):
         nullable=False,
     )
 
-    # Relationships
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
 
     organization = relationship(
         "Organization",
-        back_populates="members",
+        back_populates="projects",
     )
 
-    user = relationship(
+    creator = relationship(
         "User",
-        back_populates="organizations",
+        back_populates="created_projects",
     )
 
-    role = relationship(
-        "Role",
-        back_populates="organization_members",
+    members = relationship(
+        "ProjectMember",
+        back_populates="project",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
         return (
-            "<OrganizationMember("
+            f"<Project("
             f"id={self.id}, "
-            f"organization_id={self.organization_id}, "
-            f"user_id={self.user_id}, "
-            f"role_id={self.role_id}"
-            ")>"
+            f"name='{self.name}', "
+            f"organization_id={self.organization_id})>"
         )

@@ -234,35 +234,3 @@ def get_me(
     """
 
     return current_user
-
-
-@router.get(
-    "/admin-test",
-    summary="Superuser test endpoint",
-    description=(
-        "Example endpoint that requires "
-        "superuser privileges."
-    ),
-    responses={
-        200: {
-            "description": "Access granted",
-        },
-        401: {
-            "description": "Authentication required",
-        },
-        403: {
-            "description": "Superuser privileges required",
-        },
-    },
-)
-def admin_test(
-    current_user: User = Depends(require_superuser),
-):
-    """
-    Test endpoint requiring superuser access.
-    """
-
-    return {
-        "message": "Welcome, admin!",
-        "email": current_user.email,
-    }

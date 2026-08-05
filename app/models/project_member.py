@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import (
     DateTime,
     ForeignKey,
+    String,
     UniqueConstraint,
     func,
 )
@@ -20,24 +21,18 @@ from sqlalchemy.orm import (
 from app.database.base import Base
 
 
-class OrganizationMember(Base):
+class ProjectMember(Base):
     """
-    Represents a user's membership within an organization.
-
-    A user may belong to many organizations,
-    but only once per organization.
-
-    Organization permissions are determined
-    by the assigned organization role.
+    Represents a user's membership inside a project.
     """
 
-    __tablename__ = "organization_members"
+    __tablename__ = "project_members"
 
     __table_args__ = (
         UniqueConstraint(
-            "organization_id",
+            "project_id",
             "user_id",
-            name="uq_organization_member",
+            name="uq_project_member",
         ),
     )
 
@@ -47,10 +42,10 @@ class OrganizationMember(Base):
         default=uuid.uuid4,
     )
 
-    organization_id: Mapped[uuid.UUID] = mapped_column(
+    project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey(
-            "organizations.id",
+            "projects.id",
             ondelete="CASCADE",
         ),
         nullable=False,
@@ -65,13 +60,10 @@ class OrganizationMember(Base):
         nullable=False,
     )
 
-    role_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey(
-            "roles.id",
-            ondelete="RESTRICT",
-        ),
+    role: Mapped[str] = mapped_column(
+        String(30),
         nullable=False,
+        default="contributor",
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -80,29 +72,21 @@ class OrganizationMember(Base):
         nullable=False,
     )
 
-    # Relationships
-
-    organization = relationship(
-        "Organization",
+    project = relationship(
+        "Project",
         back_populates="members",
     )
 
     user = relationship(
         "User",
-        back_populates="organizations",
-    )
-
-    role = relationship(
-        "Role",
-        back_populates="organization_members",
+        back_populates="project_memberships",
     )
 
     def __repr__(self) -> str:
         return (
-            "<OrganizationMember("
+            f"<ProjectMember("
             f"id={self.id}, "
-            f"organization_id={self.organization_id}, "
+            f"project_id={self.project_id}, "
             f"user_id={self.user_id}, "
-            f"role_id={self.role_id}"
-            ")>"
+            f"role='{self.role}')>"
         )

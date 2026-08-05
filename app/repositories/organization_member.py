@@ -3,11 +3,26 @@ from uuid import UUID
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.organization import Organization
-from app.models.organization_member import (
-    OrganizationMember,
-    MEMBER,
-    OWNER,
-)
+from app.models.organization_member import OrganizationMember
+from app.models.role import Role
+
+
+def member_query(db: Session):
+    """
+    Base query with required relationships loaded.
+    """
+
+    return (
+        db.query(OrganizationMember)
+        .options(
+            joinedload(
+                OrganizationMember.user
+            ),
+            joinedload(
+                OrganizationMember.role
+            ),
+        )
+    )
 
 
 def get_members(
@@ -21,10 +36,7 @@ def get_members(
     """
 
     return (
-        db.query(OrganizationMember)
-        .options(
-            joinedload(OrganizationMember.user)
-        )
+        member_query(db)
         .filter(
             OrganizationMember.organization_id == organization_id
         )
@@ -39,7 +51,7 @@ def count_members(
     organization_id: UUID,
 ) -> int:
     """
-    Count the number of members in an organization.
+    Count members in an organization.
     """
 
     return (
@@ -56,14 +68,18 @@ def count_owners(
     organization_id: UUID,
 ) -> int:
     """
-    Count the number of owners in an organization.
+    Count organization owners using the Role table.
     """
 
     return (
         db.query(OrganizationMember)
+        .join(
+            Role,
+            OrganizationMember.role_id == Role.id,
+        )
         .filter(
             OrganizationMember.organization_id == organization_id,
-            OrganizationMember.role == OWNER,
+            Role.name == "owner",
         )
         .count()
     )
@@ -75,14 +91,11 @@ def get_member(
     user_id: UUID,
 ) -> OrganizationMember | None:
     """
-    Retrieve a membership by organization and user.
+    Retrieve membership by organization and user.
     """
 
     return (
-        db.query(OrganizationMember)
-        .options(
-            joinedload(OrganizationMember.user)
-        )
+        member_query(db)
         .filter(
             OrganizationMember.organization_id == organization_id,
             OrganizationMember.user_id == user_id,
@@ -96,14 +109,15 @@ def get_member_by_id(
     member_id: UUID,
 ) -> OrganizationMember | None:
     """
-    Retrieve a membership by its primary key.
+    Retrieve membership by id.
     """
 
     return (
-        db.query(OrganizationMember)
+        member_query(db)
         .options(
-            joinedload(OrganizationMember.user),
-            joinedload(OrganizationMember.organization),
+            joinedload(
+                OrganizationMember.organization
+            ),
         )
         .filter(
             OrganizationMember.id == member_id
@@ -116,7 +130,7 @@ def create_member(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
-    role: str = MEMBER,
+    role_id: UUID,
 ) -> OrganizationMember:
     """
     Add a user to an organization.
@@ -125,31 +139,37 @@ def create_member(
     member = OrganizationMember(
         organization_id=organization_id,
         user_id=user_id,
-        role=role,
+        role_id=role_id,
     )
 
     db.add(member)
     db.commit()
-    db.refresh(member)
 
-    return member
+    return get_member(
+        db,
+        organization_id,
+        user_id,
+    )
 
 
 def update_member_role(
     db: Session,
     member: OrganizationMember,
-    role: str,
+    role_id: UUID,
 ) -> OrganizationMember:
     """
-    Update a member's role.
+    Update organization member role.
     """
 
-    member.role = role
+    member.role_id = role_id
 
     db.commit()
-    db.refresh(member)
 
-    return member
+    return get_member(
+        db,
+        member.organization_id,
+        member.user_id,
+    )
 
 
 def delete_member(
@@ -157,7 +177,7 @@ def delete_member(
     member: OrganizationMember,
 ) -> bool:
     """
-    Remove a member from an organization.
+    Remove a user from an organization.
     """
 
     db.delete(member)
@@ -192,13 +212,15 @@ def get_user_memberships(
     user_id: UUID,
 ) -> list[OrganizationMember]:
     """
-    Retrieve all membership records for a user.
+    Retrieve all memberships for a user.
     """
 
     return (
-        db.query(OrganizationMember)
+        member_query(db)
         .options(
-            joinedload(OrganizationMember.organization)
+            joinedload(
+                OrganizationMember.organization
+            ),
         )
         .filter(
             OrganizationMember.user_id == user_id

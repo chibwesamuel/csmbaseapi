@@ -111,32 +111,3 @@ def test_get_current_user_with_invalid_token(client):
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-def test_admin_endpoint_denies_normal_user(
-    client,
-    authenticated_headers,
-):
-    response = client.get(
-        "/api/v1/auth/admin-test",
-        headers=authenticated_headers,
-    )
-
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-def test_admin_endpoint_allows_superuser(
-    client,
-    admin_headers,
-):
-    response = client.get(
-        "/api/v1/auth/admin-test",
-        headers=admin_headers,
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-
-    data = response.json()
-
-    assert data["message"] == "Welcome, admin!"
-    assert "email" in data

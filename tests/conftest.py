@@ -16,7 +16,11 @@ from app.repositories.user_role import assign_role_to_user
 
 from app.core.security import hash_password
 
-from tests.seed import seed_admin_role
+from tests.seed import (
+    seed_admin_role,
+    seed_organization_roles,
+)
+
 from tests.factories import (
     user_payload,
     admin_payload,
@@ -55,6 +59,27 @@ def db_session(db):
     """
 
     return db
+
+
+# ---------------------------------------------------------
+# Seed Roles
+# ---------------------------------------------------------
+
+@pytest.fixture
+def seed_roles(db):
+    """
+    Ensure all required application roles exist.
+
+    Creates:
+    - Admin (system role)
+    - owner (organization role)
+    - admin (organization role)
+    - member (organization role)
+    """
+
+    seed_admin_role(db)
+
+    seed_organization_roles(db)
 
 
 # ---------------------------------------------------------
@@ -186,9 +211,21 @@ def authenticated_headers(
 # ---------------------------------------------------------
 
 @pytest.fixture
-def admin_role(db):
+def admin_role(
+    db,
+    seed_roles,
+):
+    """
+    Return the seeded system Admin role.
+    """
 
-    return seed_admin_role(db)
+    return (
+        db.query(Role)
+        .filter(
+            Role.name == "Admin"
+        )
+        .first()
+    )
 
 
 # ---------------------------------------------------------
@@ -196,7 +233,11 @@ def admin_role(db):
 # ---------------------------------------------------------
 
 @pytest.fixture
-def admin_user(client, db, admin_role):
+def admin_user(
+    client,
+    db,
+    admin_role,
+):
 
     password = "AdminPassword123!"
 
@@ -243,7 +284,10 @@ def admin_user(client, db, admin_role):
 # ---------------------------------------------------------
 
 @pytest.fixture
-def admin_headers(client, admin_user):
+def admin_headers(
+    client,
+    admin_user,
+):
 
     response = client.post(
         "/api/v1/auth/login",

@@ -11,18 +11,17 @@ from fastapi import (
 
 from sqlalchemy.orm import Session
 
-
 from app.database.session import get_db
 
 from app.dependencies.organization import (
     require_organization_admin,
 )
 
-from app.dependencies.auth import get_current_user
-
+from app.dependencies.auth import (
+    get_current_user,
+)
 
 from app.models.user import User
-from app.models.organization import Organization
 
 from app.schemas.organization_invitation import (
     OrganizationInvitationCreate,
@@ -31,7 +30,6 @@ from app.schemas.organization_invitation import (
     PaginatedOrganizationInvitationsResponse,
 )
 
-
 from app.services.organization_invitation import (
     create_organization_invitation,
     get_invitation,
@@ -39,12 +37,10 @@ from app.services.organization_invitation import (
     cancel_invitation,
 )
 
-
 from app.repositories.organization_invitation import (
     get_organization_invitations,
     count_organization_invitations,
 )
-
 
 
 router = APIRouter(
@@ -53,54 +49,25 @@ router = APIRouter(
 )
 
 
-
 @router.post(
     "/{organization_id}/invitations",
     response_model=OrganizationInvitationResponse,
     status_code=status.HTTP_201_CREATED,
 )
-
 def create_invitation(
     organization_id: UUID,
     invitation_data: OrganizationInvitationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        get_current_user
-    ),
+    current_user: User = Depends(get_current_user),
+    membership=Depends(require_organization_admin),
 ):
     """
     Create an organization invitation.
+
+    Requires organization owner/admin privileges.
     """
 
-    organization = (
-        db.query(Organization)
-        .filter(
-            Organization.id == organization_id
-        )
-        .first()
-    )
-
-    if not organization:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found",
-        )
-
-
-    # Now check organization ownership/admin access
-    from app.dependencies.organization import (
-        check_organization_admin,
-    )
-
-    check_organization_admin(
-        db,
-        organization_id,
-        current_user.id,
-    )
-
-
     try:
-
         return create_organization_invitation(
             db,
             organization_id,
@@ -109,11 +76,9 @@ def create_invitation(
             current_user.id,
         )
 
-
     except ValueError as error:
 
         message = str(error)
-
 
         if message == (
             "A pending invitation already exists for this email"
@@ -123,12 +88,10 @@ def create_invitation(
                 detail=message,
             )
 
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=message,
         )
-
 
 
 @router.get(
@@ -140,16 +103,13 @@ def list_organization_invitations(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_organization_admin
-    ),
+    membership=Depends(require_organization_admin),
 ):
     """
     List invitations for an organization.
 
-    Requires organization admin/owner access.
+    Requires organization owner/admin privileges.
     """
-
 
     invitations = get_organization_invitations(
         db,
@@ -158,12 +118,10 @@ def list_organization_invitations(
         limit,
     )
 
-
     total = count_organization_invitations(
         db,
         organization_id,
     )
-
 
     return {
         "total": total,
@@ -171,8 +129,6 @@ def list_organization_invitations(
         "limit": limit,
         "invitations": invitations,
     }
-
-
 
 
 @router.get(
@@ -184,17 +140,14 @@ def retrieve_invitation(
     db: Session = Depends(get_db),
 ):
     """
-    Retrieve invitation by token.
+    Retrieve invitation using token.
     """
 
-
     try:
-
         return get_invitation(
             db,
             token,
         )
-
 
     except ValueError as error:
 
@@ -204,22 +157,17 @@ def retrieve_invitation(
         )
 
 
-
-
 @router.post(
     "/invitations/accept",
 )
 def accept_organization_invitation(
     invitation_data: OrganizationInvitationAccept,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        get_current_user
-    ),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Accept an organization invitation.
     """
-
 
     try:
 
@@ -229,12 +177,10 @@ def accept_organization_invitation(
             current_user.id,
         )
 
-
         return {
             "message": "Invitation accepted successfully",
             "organization_id": membership.organization_id,
         }
-
 
     except ValueError as error:
 
@@ -244,8 +190,6 @@ def accept_organization_invitation(
         )
 
 
-
-
 @router.delete(
     "/{organization_id}/invitations/{invitation_id}",
 )
@@ -253,16 +197,13 @@ def delete_organization_invitation(
     organization_id: UUID,
     invitation_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_organization_admin
-    ),
+    membership=Depends(require_organization_admin),
 ):
     """
     Cancel an organization invitation.
 
-    Requires organization admin/owner access.
+    Requires organization owner/admin privileges.
     """
-
 
     try:
 
@@ -271,11 +212,9 @@ def delete_organization_invitation(
             invitation_id,
         )
 
-
         return {
             "message": "Invitation cancelled successfully"
         }
-
 
     except ValueError as error:
 
