@@ -282,6 +282,7 @@ def test_get_project_member(
     assert data["role"] == "contributor"
 
 
+
 def test_update_project_member_role(
     client,
     admin_headers,
@@ -311,7 +312,7 @@ def test_update_project_member_role(
         f"{project['id']}/members"
     )
 
-    client.post(
+    create_response = client.post(
         url,
         json={
             "user_id": user["id"],
@@ -319,6 +320,8 @@ def test_update_project_member_role(
         },
         headers=admin_headers,
     )
+
+    assert create_response.status_code == 201
 
     response = client.patch(
         f"{url}/{user['id']}",
@@ -332,7 +335,9 @@ def test_update_project_member_role(
 
     data = response.json()
 
+    assert data["user_id"] == user["id"]
     assert data["role"] == "admin"
+
 
 
 def test_remove_project_member(
@@ -364,7 +369,7 @@ def test_remove_project_member(
         f"{project['id']}/members"
     )
 
-    client.post(
+    create_response = client.post(
         url,
         json={
             "user_id": user["id"],
@@ -372,6 +377,8 @@ def test_remove_project_member(
         },
         headers=admin_headers,
     )
+
+    assert create_response.status_code == 201
 
     response = client.delete(
         f"{url}/{user['id']}",

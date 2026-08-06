@@ -138,3 +138,13 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+    task_comments = relationship(
+        "TaskComment",
+        back_populates="user",
+    )
+
+    task_attachments = relationship(
+        "TaskAttachment",
+        back_populates="uploader",
+    )

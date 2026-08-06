@@ -37,6 +37,10 @@ from app.api.v1.tasks import (
     router as tasks_router,
 )
 
+from app.api.v1.task_comments import (
+    router as task_comments_router,
+)
+
 
 api_router = APIRouter()
 
@@ -70,3 +74,7 @@ api_router.include_router(
 )
 
 api_router.include_router(tasks_router)
+
+api_router.include_router(
+    task_comments_router
+)
