@@ -128,6 +128,13 @@ class Task(Base):
     )
 
 
+    attachments = relationship(
+        "TaskAttachment",
+        back_populates="task",
+        cascade="all, delete-orphan",
+    )
+
+
     def __repr__(self) -> str:
         return (
             f"<Task("

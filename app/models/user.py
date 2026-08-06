@@ -143,3 +143,8 @@ class User(Base):
         "TaskComment",
         back_populates="user",
     )
+
+    task_attachments = relationship(
+        "TaskAttachment",
+        back_populates="uploader",
+    )
