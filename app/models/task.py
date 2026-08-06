@@ -121,6 +121,12 @@ class Task(Base):
         back_populates="assigned_tasks",
     )
 
+    comments = relationship(
+        "TaskComment",
+        back_populates="task",
+        cascade="all, delete-orphan",
+    )
+
 
     def __repr__(self) -> str:
         return (

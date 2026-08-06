@@ -352,3 +352,7 @@ def test_role(db):
     db.refresh(role)
 
     return role
+
+@pytest.fixture
+def admin_user_id(admin_user):
+    return str(admin_user.id)
