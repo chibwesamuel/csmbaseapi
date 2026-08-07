@@ -41,6 +41,10 @@ from app.api.v1.task_comments import (
     router as task_comments_router,
 )
 
+from app.api.v1.task_attachments import (
+    router as task_attachments_router,
+)
+
 
 api_router = APIRouter()
 
@@ -77,4 +81,8 @@ api_router.include_router(tasks_router)
 
 api_router.include_router(
     task_comments_router
+)
+
+api_router.include_router(
+    task_attachments_router
 )

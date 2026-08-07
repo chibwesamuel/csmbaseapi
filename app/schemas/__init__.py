@@ -3,3 +3,9 @@ from app.schemas.organization_invitation import (
     OrganizationInvitationAccept,
     OrganizationInvitationResponse,
 )
+
+from app.schemas.task_attachment import (
+    TaskAttachmentCreate,
+    TaskAttachmentResponse,
+    PaginatedTaskAttachmentsResponse,
+)
