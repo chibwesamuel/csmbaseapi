@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     Application configuration loaded from environment variables.
     """
 
-    APP_NAME: str = "PulseAPI"
+    APP_NAME: str = "CSMBaseAPI"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
 

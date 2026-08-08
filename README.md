@@ -1,13 +1,13 @@
-# PulseAPI
+# CSMBaseAPI
 
-**PulseAPI** is a **cloud-native backend platform** for managing business data through **REST** and **GraphQL APIs**.  
+**CSMBaseAPI** is a **cloud-native backend platform** for managing business data through **REST** and **GraphQL APIs**.  
 It powers SaaS applications by providing secure, scalable APIs for handling **users, organizations, projects, tasks, and notifications** — with no frontend, just APIs.
 
 ---
 
 ## 🚀 Project Goal
 Building the backend for a SaaS company.  
-PulseAPI provides the foundation to manage:
+CSMBaseAPI provides the foundation to manage:
 
 - **Users**  
 - **Organizations**  

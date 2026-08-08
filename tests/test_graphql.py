@@ -31,7 +31,7 @@ def test_graphql_hello_query(client: TestClient):
     data = response.json()
 
     assert "data" in data
-    assert data["data"]["hello"] == "Hello from PulseAPI GraphQL 🚀"
+    assert data["data"]["hello"] == "Hello from CSMBaseAPI GraphQL 🚀"
 
 
 def test_graphql_invalid_query(client: TestClient):
