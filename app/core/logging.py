@@ -7,7 +7,7 @@ def setup_logging() -> logging.Logger:
     Configure and return the application logger.
     """
 
-    logger = logging.getLogger("pulseapi")
+    logger = logging.getLogger("csmbaseapi")
 
     if logger.handlers:
         return logger

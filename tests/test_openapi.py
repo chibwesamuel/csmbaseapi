@@ -5,7 +5,7 @@ def test_openapi_schema(client):
 
     data = response.json()
 
-    assert data["info"]["title"] == "PulseAPI"
+    assert data["info"]["title"] == "CSMBaseAPI"
     assert "version" in data["info"]
 
     assert "/api/v1/auth/login" in data["paths"]

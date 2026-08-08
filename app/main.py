@@ -97,9 +97,9 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="""
-# PulseAPI
+# CSMBaseAPI
 
-PulseAPI is a modern, production-ready REST and GraphQL backend
+CSMBaseAPI is a modern, production-ready REST and GraphQL backend
 built with FastAPI.
 
 ## Features
@@ -138,7 +138,7 @@ Authorization is enforced through FastAPI dependencies.
 """,
     openapi_tags=tags_metadata,
     contact={
-        "name": "PulseAPI",
+        "name": "CSMBaseAPI",
         "url": "https://github.com/chibwesamuel/pulseapi",
     },
     license_info={
@@ -229,7 +229,7 @@ def root():
         "application": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "status": "running",
-        "message": "Welcome to PulseAPI 🚀!",
+        "message": "Welcome to CSMBaseAPI 🚀!",
     }
 
 
@@ -239,7 +239,7 @@ def root():
     tags=["System"],
     summary="Health check",
     description=(
-        "Returns the current health status of PulseAPI."
+        "Returns the current health status of CSMBaseAPI."
     ),
 )
 def health_check():

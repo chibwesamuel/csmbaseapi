@@ -6,4 +6,4 @@ class Query:
 
     @strawberry.field
     def hello(self) -> str:
-        return "Hello from PulseAPI GraphQL 🚀"
+        return "Hello from CSMBaseAPI GraphQL 🚀"

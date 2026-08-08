@@ -3,7 +3,7 @@ services:
   api:
     build: .
     
-    container_name: pulseapi-api
+    container_name: csmbaseapi-api
 
     restart: unless-stopped
 
@@ -22,13 +22,13 @@ services:
       - db
 
     networks:
-      - pulseapi-network
+      - csmbaseapi-network
 
 
   db:
     image: postgres:16
 
-    container_name: pulseapi-postgres
+    container_name: csmbaseapi-postgres
 
     restart: unless-stopped
 
@@ -44,7 +44,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
     networks:
-      - pulseapi-network
+      - csmbaseapi-network
 
 
 volumes:
@@ -54,5 +54,5 @@ volumes:
 
 networks:
 
-  pulseapi-network:
+  csmbaseapi-network:
     external: true

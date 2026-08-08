@@ -45,7 +45,7 @@ router = APIRouter(
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
     description=(
-        "Create a new PulseAPI user account. "
+        "Create a new CSMBaseAPI user account. "
         "Email addresses and usernames must be unique."
     ),
     responses={
