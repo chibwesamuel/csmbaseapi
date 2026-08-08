@@ -139,7 +139,7 @@ Authorization is enforced through FastAPI dependencies.
     openapi_tags=tags_metadata,
     contact={
         "name": "CSMBaseAPI",
-        "url": "https://github.com/chibwesamuel/pulseapi",
+        "url": "https://github.com/chibwesamuel/csmbaseapi",
     },
     license_info={
         "name": "MIT",
