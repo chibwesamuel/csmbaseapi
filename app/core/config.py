@@ -10,28 +10,30 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "CSMBaseAPI"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
-    # Database (we will use these in Docker/PostgreSQL)
+    # Database
     DATABASE_URL: str
 
     # Alembic local migration database URL
     ALEMBIC_DATABASE_URL: str | None = None
 
-    # Security (we will use this during JWT authentication)
+    # Security
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # CORS
+    CORS_ORIGINS: str = "*"
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
-        extra="ignore"
+        extra="ignore",
     )
 
 
