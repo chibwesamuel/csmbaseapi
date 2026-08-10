@@ -356,3 +356,77 @@ def test_role(db):
 @pytest.fixture
 def admin_user_id(admin_user):
     return str(admin_user.id)
+
+
+@pytest.fixture
+def notification_user(
+    db,
+    registered_user,
+):
+    """
+    Assign notification permissions to a normal test user.
+    """
+
+    permissions = (
+        db.query(Permission)
+        .filter(
+            Permission.name.in_(
+                [
+                    "notifications.view",
+                    "notifications.update",
+                    "notifications.delete",
+                ]
+            )
+        )
+        .all()
+    )
+
+    role = Role(
+        name=f"Notification Tester {uuid.uuid4().hex[:8]}",
+        description="Role for notification endpoint tests",
+    )
+
+    db.add(role)
+    db.flush()
+
+    for permission in permissions:
+        role.permissions.append(permission)
+
+    db.commit()
+    db.refresh(role)
+
+    assign_role_to_user(
+        db,
+        registered_user,
+        role,
+    )
+
+    db.refresh(registered_user)
+
+    return registered_user
+
+@pytest.fixture
+def notification_headers(
+    client,
+    notification_user,
+    unique_user,
+):
+    """
+    Login as a user with notification permissions.
+    """
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": notification_user.email,
+            "password": unique_user["password"],
+        },
+    )
+
+    assert response.status_code == 200
+
+    token = response.json()["access_token"]
+
+    return {
+        "Authorization": f"Bearer {token}"
+    }

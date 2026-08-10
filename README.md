@@ -21,7 +21,7 @@ CSMBaseAPI provides the foundation to manage:
 
 | Layer | Technology |
 |-------|------------|
-| **Backend** | FastAPI (Python 3.12) |
+| **Backend** | FastAPI (Python 3.10.12) |
 | **Database** | PostgreSQL |
 | **ORM** | SQLAlchemy |
 | **Authentication** | JWT, OAuth2 |
