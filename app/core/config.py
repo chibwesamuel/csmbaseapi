@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str
 
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     # Alembic local migration database URL
     ALEMBIC_DATABASE_URL: str | None = None
 

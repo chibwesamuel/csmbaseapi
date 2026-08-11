@@ -38,7 +38,7 @@ def test_user_can_list_notifications(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     create_notification(
         db,
@@ -47,7 +47,7 @@ def test_user_can_list_notifications(
 
     response = client.get(
         "/api/v1/notifications",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -70,7 +70,7 @@ def test_user_can_filter_unread_notifications(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     create_notification(
         db,
@@ -88,7 +88,7 @@ def test_user_can_filter_unread_notifications(
 
     response = client.get(
         "/api/v1/notifications?is_read=false",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -104,7 +104,7 @@ def test_user_can_filter_read_notifications(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     create_notification(
         db,
@@ -122,7 +122,7 @@ def test_user_can_filter_read_notifications(
 
     response = client.get(
         "/api/v1/notifications?is_read=true",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -139,7 +139,7 @@ def test_user_only_sees_own_notifications(
     db,
     notification_user,
     normal_user,
-    authenticated_headers,
+    notification_headers,
 ):
     create_notification(
         db,
@@ -155,7 +155,7 @@ def test_user_only_sees_own_notifications(
 
     response = client.get(
         "/api/v1/notifications",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -174,7 +174,7 @@ def test_user_can_get_own_notification(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     notification = create_notification(
         db,
@@ -183,7 +183,7 @@ def test_user_can_get_own_notification(
 
     response = client.get(
         f"/api/v1/notifications/{notification.id}",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -199,7 +199,7 @@ def test_user_cannot_get_another_users_notification(
     db,
     notification_user,
     normal_user,
-    authenticated_headers,
+    notification_headers,
 ):
     notification = create_notification(
         db,
@@ -208,7 +208,7 @@ def test_user_cannot_get_another_users_notification(
 
     response = client.get(
         f"/api/v1/notifications/{notification.id}",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 404
@@ -238,7 +238,7 @@ def test_user_can_mark_notification_as_read(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     notification = create_notification(
         db,
@@ -248,7 +248,7 @@ def test_user_can_mark_notification_as_read(
 
     response = client.patch(
         f"/api/v1/notifications/{notification.id}/read",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -263,7 +263,7 @@ def test_marking_already_read_notification_is_safe(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     notification = create_notification(
         db,
@@ -273,7 +273,7 @@ def test_marking_already_read_notification_is_safe(
 
     response = client.patch(
         f"/api/v1/notifications/{notification.id}/read",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -285,7 +285,7 @@ def test_user_cannot_mark_another_users_notification_as_read(
     db,
     notification_user,
     normal_user,
-    authenticated_headers,
+    notification_headers,
 ):
     notification = create_notification(
         db,
@@ -294,7 +294,7 @@ def test_user_cannot_mark_another_users_notification_as_read(
 
     response = client.patch(
         f"/api/v1/notifications/{notification.id}/read",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 404
@@ -308,7 +308,7 @@ def test_user_can_mark_all_notifications_as_read(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     create_notification(
         db,
@@ -331,7 +331,7 @@ def test_user_can_mark_all_notifications_as_read(
 
     response = client.patch(
         "/api/v1/notifications/read-all",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -357,7 +357,7 @@ def test_user_can_delete_own_notification(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     notification = create_notification(
         db,
@@ -366,7 +366,7 @@ def test_user_can_delete_own_notification(
 
     response = client.delete(
         f"/api/v1/notifications/{notification.id}",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -386,7 +386,7 @@ def test_user_cannot_delete_another_users_notification(
     db,
     notification_user,
     normal_user,
-    authenticated_headers,
+    notification_headers,
 ):
     notification = create_notification(
         db,
@@ -395,7 +395,7 @@ def test_user_cannot_delete_another_users_notification(
 
     response = client.delete(
         f"/api/v1/notifications/{notification.id}",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 404
@@ -427,7 +427,7 @@ def test_user_can_delete_all_read_notifications(
     client,
     db,
     notification_user,
-    authenticated_headers,
+    notification_headers,
 ):
     create_notification(
         db,
@@ -452,7 +452,7 @@ def test_user_can_delete_all_read_notifications(
 
     response = client.delete(
         "/api/v1/notifications/read",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
@@ -476,7 +476,7 @@ def test_delete_read_notifications_does_not_delete_other_users_notifications(
     db,
     notification_user,
     normal_user,
-    authenticated_headers,
+    notification_headers,
 ):
     create_notification(
         db,
@@ -494,7 +494,7 @@ def test_delete_read_notifications_does_not_delete_other_users_notifications(
 
     response = client.delete(
         "/api/v1/notifications/read",
-        headers=authenticated_headers,
+        headers=notification_headers,
     )
 
     assert response.status_code == 200
