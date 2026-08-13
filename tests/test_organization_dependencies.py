@@ -98,8 +98,8 @@ def test_get_current_organization_success():
     db = MagicMock()
 
     db.query.side_effect = [
-        create_query_mock(membership),
         create_query_mock(organization),
+        create_query_mock(membership),
     ]
 
     result = get_current_organization(
@@ -114,15 +114,19 @@ def test_get_current_organization_success():
 def test_get_current_organization_without_membership():
 
     user = create_user()
+    organization = create_organization()
 
     db = MagicMock()
 
-    db.query.return_value = create_query_mock(None)
+    db.query.side_effect = [
+        create_query_mock(organization),
+        create_query_mock(None),
+    ]
 
     with pytest.raises(HTTPException) as exc:
 
         get_current_organization(
-            organization_id=uuid4(),
+            organization_id=organization.id,
             db=db,
             current_user=user,
         )
@@ -139,18 +143,9 @@ def test_get_current_organization_missing_organization():
 
     organization_id = uuid4()
 
-    membership = OrganizationMember(
-        organization_id=organization_id,
-        user_id=user.id,
-        role=create_role("member"),
-    )
-
     db = MagicMock()
 
-    db.query.side_effect = [
-        create_query_mock(membership),
-        create_query_mock(None),
-    ]
+    db.query.return_value = create_query_mock(None)
 
     with pytest.raises(HTTPException) as exc:
 
