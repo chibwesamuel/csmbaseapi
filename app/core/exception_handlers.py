@@ -1,8 +1,8 @@
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
 
 from app.core.exceptions import EmailAlreadyRegistered
+from app.core.responses import error_response
 
 
 # ==========================================================
@@ -18,11 +18,9 @@ async def email_exists_exception_handler(
     Handle duplicate email registration attempts.
     """
 
-    return JSONResponse(
+    return error_response(
+        message=exc.message,
         status_code=400,
-        content={
-            "detail": exc.message,
-        },
     )
 
 
@@ -37,18 +35,11 @@ async def http_exception_handler(
 ):
     """
     Handle FastAPI HTTP exceptions.
-
-    Keeps FastAPI's default response contract:
-    {
-        "detail": "message"
-    }
     """
 
-    return JSONResponse(
+    return error_response(
+        message=str(exc.detail),
         status_code=exc.status_code,
-        content={
-            "detail": exc.detail,
-        },
         headers=getattr(
             exc,
             "headers",
@@ -68,16 +59,12 @@ async def validation_exception_handler(
 ):
     """
     Handle request validation errors.
-
-    Keeps FastAPI's validation format compatible
-    with existing clients/tests.
     """
 
-    return JSONResponse(
+    return error_response(
+        message="Validation error",
         status_code=422,
-        content={
-            "detail": exc.errors(),
-        },
+        errors=exc.errors(),
     )
 
 
@@ -94,9 +81,7 @@ async def global_exception_handler(
     Catch all unexpected exceptions.
     """
 
-    return JSONResponse(
+    return error_response(
+        message="Internal server error",
         status_code=500,
-        content={
-            "detail": "Internal server error",
-        },
     )

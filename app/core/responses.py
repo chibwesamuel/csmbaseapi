@@ -32,6 +32,7 @@ def error_response(
     message: str,
     status_code: int,
     errors: Any = None,
+    headers: Optional[dict[str, str]] = None,
 ) -> JSONResponse:
     """
     Standard error API response.
@@ -48,4 +49,5 @@ def error_response(
     return JSONResponse(
         status_code=status_code,
         content=content,
+        headers=headers,
     )

@@ -93,7 +93,7 @@ def test_invalid_refresh_token(
         status.HTTP_401_UNAUTHORIZED
     )
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Invalid refresh token"
     )
 
@@ -158,7 +158,7 @@ def test_revoked_refresh_token_cannot_be_used(
         status.HTTP_401_UNAUTHORIZED
     )
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Invalid refresh token"
     )
 
@@ -181,6 +181,6 @@ def test_logout_unknown_refresh_token(
         status.HTTP_404_NOT_FOUND
     )
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Refresh token not found"
     )

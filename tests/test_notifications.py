@@ -212,7 +212,7 @@ def test_user_cannot_get_another_users_notification(
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "You can only access your own notifications"
+    assert response.json()["message"] == "You can only access your own notifications"
 
 
 def test_get_nonexistent_notification_returns_404(
@@ -227,7 +227,7 @@ def test_get_nonexistent_notification_returns_404(
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Notification not found"
+    assert response.json()["message"] == "Notification not found"
 
 
 # ==========================================================

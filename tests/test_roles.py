@@ -54,7 +54,7 @@ def test_duplicate_role(
 
     assert second.status_code == status.HTTP_409_CONFLICT
 
-    assert second.json()["detail"] == (
+    assert second.json()["message"] == (
         "Role already exists"
     )
 
@@ -120,7 +120,7 @@ def test_get_missing_role(
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Role not found"
     )
 
@@ -170,7 +170,7 @@ def test_update_missing_role(
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Role not found"
     )
 
@@ -214,7 +214,7 @@ def test_delete_missing_role(
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Role not found"
     )
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
 
 class UserCreate(BaseModel):
@@ -60,7 +60,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    roles: list["RoleResponse"] = []
+    roles: list["RoleResponse"] = Field(default_factory=list)
 
     model_config = ConfigDict(
         from_attributes=True
