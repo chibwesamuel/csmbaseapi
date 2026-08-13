@@ -243,7 +243,7 @@ def test_get_organization_not_found(client, admin_headers):
 
     assert response.status_code == 404
 
-    assert response.json()["detail"] == "Organization not found"
+    assert response.json()["message"] == "Organization not found"
 
 
 def test_update_organization_not_found(client, admin_headers):
@@ -262,7 +262,7 @@ def test_update_organization_not_found(client, admin_headers):
 
     assert response.status_code == 404
 
-    assert response.json()["detail"] == "Organization not found"
+    assert response.json()["message"] == "Organization not found"
 
 
 def test_delete_organization_not_found(client, admin_headers):
@@ -276,7 +276,7 @@ def test_delete_organization_not_found(client, admin_headers):
 
     assert response.status_code == 404
 
-    assert response.json()["detail"] == "Organization not found"
+    assert response.json()["message"] == "Organization not found"
 
 def test_creator_becomes_organization_owner(
     client,

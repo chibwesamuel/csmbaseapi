@@ -148,3 +148,9 @@ class User(Base):
         "TaskAttachment",
         back_populates="uploader",
     )
+
+    notifications = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

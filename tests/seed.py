@@ -40,6 +40,11 @@ DEFAULT_PERMISSIONS = [
     "tasks.create",
     "tasks.update",
     "tasks.delete",
+
+    "notifications.view",
+    "notifications.create",
+    "notifications.update",
+    "notifications.delete",
 ]
 
 

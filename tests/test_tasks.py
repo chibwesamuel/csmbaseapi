@@ -806,7 +806,7 @@ def test_create_task_with_non_member_assignee(
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Assigned user is not a project member"
     )
 
@@ -844,7 +844,7 @@ def test_create_task_with_invalid_assignee(
 
     assert response.status_code == 400
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Assigned user not found"
     )
 
@@ -909,7 +909,7 @@ def test_update_task_duplicate_title(
 
     assert response.status_code == 400
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "A task with this title already exists"
     )
 
@@ -947,6 +947,6 @@ def test_update_missing_task(
 
     assert response.status_code == 404
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Task not found"
     )

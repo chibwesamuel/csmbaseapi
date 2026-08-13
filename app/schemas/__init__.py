@@ -4,6 +4,12 @@ from app.schemas.organization_invitation import (
     OrganizationInvitationResponse,
 )
 
+from app.schemas.notification import (
+    NotificationCreate,
+    NotificationResponse,
+    PaginatedNotificationsResponse,
+)
+
 from app.schemas.task_attachment import (
     TaskAttachmentCreate,
     TaskAttachmentResponse,

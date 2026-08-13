@@ -102,7 +102,7 @@ def test_duplicate_member(client, admin_headers):
 
     assert second.status_code == 409
 
-    assert second.json()["detail"] == (
+    assert second.json()["message"] == (
         "User is already a member of this organization"
     )
 
@@ -125,7 +125,7 @@ def test_add_member_organization_not_found(
 
     assert response.status_code == 404
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Organization not found"
     )
 
@@ -151,7 +151,7 @@ def test_add_member_user_not_found(
 
     assert response.status_code == 404
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "User not found"
     )
 
@@ -227,7 +227,7 @@ def test_update_missing_membership(
 
     assert response.status_code == 404
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Membership not found"
     )
 
@@ -279,7 +279,7 @@ def test_remove_missing_member(
 
     assert response.status_code == 404
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Membership not found"
     )
 
@@ -310,7 +310,7 @@ def test_cannot_remove_last_owner(
 
     assert response.status_code == 400
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Cannot remove the last owner of an organization"
     )
 
@@ -344,7 +344,7 @@ def test_cannot_change_last_owner_role(
 
     assert response.status_code == 400
 
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "An organization must have at least one owner"
     )
 

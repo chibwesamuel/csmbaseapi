@@ -2,7 +2,7 @@ services:
 
   api:
     build: .
-    
+
     container_name: csmbaseapi-api
 
     restart: unless-stopped
@@ -17,13 +17,14 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       APP_NAME: ${APP_NAME}
       ENVIRONMENT: ${ENVIRONMENT}
+      REDIS_URL: ${REDIS_URL}
 
     depends_on:
       - db
+      - redis
 
     networks:
       - csmbaseapi-network
-
 
   db:
     image: postgres:16
@@ -46,13 +47,27 @@ services:
     networks:
       - csmbaseapi-network
 
+  redis:
+    image: redis:7-alpine
+
+    container_name: csmbaseapi-redis
+
+    restart: unless-stopped
+
+    volumes:
+      - redis_data:/data
+
+    command: redis-server --appendonly yes
+
+    networks:
+      - csmbaseapi-network
+
 
 volumes:
-
   postgres_data:
+  redis_data:
 
 
 networks:
-
   csmbaseapi-network:
     external: true

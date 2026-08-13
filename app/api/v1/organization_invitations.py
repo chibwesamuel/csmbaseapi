@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 
-from app.dependencies.organization import (
+from app.dependencies.organization_permissions import (
     require_organization_admin,
 )
 

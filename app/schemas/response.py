@@ -21,3 +21,11 @@ class APIErrorResponse(BaseModel):
     success: bool
     message: str
     errors: Optional[Any] = None
+
+
+class MessageResponse(BaseModel):
+    """
+    Standard response for successful action operations.
+    """
+
+    message: str

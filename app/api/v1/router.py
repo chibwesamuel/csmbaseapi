@@ -45,6 +45,10 @@ from app.api.v1.task_attachments import (
     router as task_attachments_router,
 )
 
+from app.api.v1.notifications import (
+    router as notifications_router,
+)
+
 
 api_router = APIRouter()
 
@@ -85,4 +89,8 @@ api_router.include_router(
 
 api_router.include_router(
     task_attachments_router
+)
+
+api_router.include_router(
+    notifications_router
 )

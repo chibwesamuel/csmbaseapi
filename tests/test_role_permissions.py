@@ -39,7 +39,7 @@ def test_duplicate_permission_assignment(
 
     assert (
         "already assigned"
-        in response.json()["detail"]
+        in response.json()["message"]
     )
 
 
@@ -110,7 +110,7 @@ def test_remove_unassigned_permission(
 
     assert (
         "not assigned"
-        in response.json()["detail"]
+        in response.json()["message"]
     )
 
 

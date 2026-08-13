@@ -12,6 +12,7 @@ from app.models.project_member import ProjectMember
 from app.models.task import Task
 from app.models.task_comment import TaskComment
 from app.models.task_attachment import TaskAttachment
+from app.models.notification import Notification
 
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "Task",
     "TaskComment",
     "TaskAttachment",
+    "Notification",
 ]

@@ -43,6 +43,7 @@ from app.models.organization_member import OrganizationMember
 from app.models.refresh_token import RefreshToken
 from app.models.organization_invitation import OrganizationInvitation
 from app.models.project import Project
+from app.models.notification import Notification
 
 
 target_metadata = Base.metadata

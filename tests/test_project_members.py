@@ -441,5 +441,5 @@ def test_cannot_remove_last_project_owner(
 
     assert (
         "last owner"
-        in response.json()["detail"]
+        in response.json()["message"]
     )

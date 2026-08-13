@@ -67,7 +67,7 @@ def test_duplicate_role_assignment(
     )
 
     assert second.status_code == 409
-    assert "already assigned" in second.json()["detail"]
+    assert "already assigned" in second.json()["message"]
 
 
 def test_list_user_roles(
@@ -176,7 +176,7 @@ def test_remove_unassigned_role(
     )
 
     assert response.status_code == 409
-    assert "not assigned" in response.json()["detail"]
+    assert "not assigned" in response.json()["message"]
 
 
 def test_normal_user_cannot_assign_roles(

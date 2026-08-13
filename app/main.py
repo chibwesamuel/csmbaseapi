@@ -4,6 +4,8 @@ from fastapi import (
     HTTPException,
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
 from fastapi.exceptions import RequestValidationError
 
 from strawberry.fastapi import GraphQLRouter
@@ -146,6 +148,23 @@ Authorization is enforced through FastAPI dependencies.
     },
 )
 
+# ==========================================================
+# CORS
+# ==========================================================
+
+cors_origins = [
+    origin.strip()
+    for origin in settings.CORS_ORIGINS.split(",")
+    if origin.strip()
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ==========================================================
 # Middleware
