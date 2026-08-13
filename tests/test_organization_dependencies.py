@@ -6,6 +6,7 @@ from fastapi import HTTPException
 
 from app.dependencies.organization import (
     get_current_organization,
+    get_current_project,
 )
 
 from app.dependencies.organization_permissions import (
@@ -301,3 +302,55 @@ def test_require_organization_member():
     )
 
     assert result == membership
+
+# ---------------------------------------------------------
+# get_current_project
+# ---------------------------------------------------------
+
+
+def test_get_current_project_success():
+
+    organization = create_organization()
+    user = create_user()
+
+    project = MagicMock()
+    project.id = uuid4()
+    project.organization_id = organization.id
+
+    db = MagicMock()
+
+    db.query.return_value = create_query_mock(
+        project
+    )
+
+    result = get_current_project(
+        project_id=project.id,
+        organization=organization,
+        db=db,
+    )
+
+    assert result == project
+
+
+def test_get_current_project_missing():
+
+    organization = create_organization()
+
+    project_id = uuid4()
+
+    db = MagicMock()
+
+    db.query.return_value = create_query_mock(None)
+
+    with pytest.raises(HTTPException) as exc:
+
+        get_current_project(
+            project_id=project_id,
+            organization=organization,
+            db=db,
+        )
+
+    assert exc.value.status_code == 404
+    assert exc.value.detail == (
+        "Project not found"
+    )

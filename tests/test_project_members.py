@@ -443,3 +443,72 @@ def test_cannot_remove_last_project_owner(
         "last owner"
         in response.json()["message"]
     )
+
+def test_project_members_reject_project_from_another_organization(
+    client,
+    admin_headers,
+):
+    """
+    A project belonging to another organization must
+    not be accessible through the requested organization.
+    """
+
+    organization_one = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    organization_two = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization_one["id"],
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_two['id']}/projects/"
+            f"{project['id']}/members"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )
+
+
+def test_project_members_reject_missing_project(
+    client,
+    admin_headers,
+):
+    """
+    A non-existent project must return 404.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{uuid.uuid4()}/members"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )
