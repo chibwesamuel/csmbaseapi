@@ -11,8 +11,10 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 
+from app.dependencies.organization import get_current_project
 from app.dependencies.permissions import require_permission
 
+from app.models.project import Project
 from app.models.user import User
 
 from app.schemas.task import (
@@ -47,6 +49,9 @@ def create_task_endpoint(
     project_id: UUID,
     data: TaskCreate,
     db: Session = Depends(get_db),
+    current_project: Project = Depends(
+        get_current_project
+    ),
     current_user: User = Depends(
         require_permission(
             "tasks.create"
@@ -54,7 +59,13 @@ def create_task_endpoint(
     ),
 ):
     """
-    Create a task.
+    Create a task inside the current project.
+
+    The current project dependency ensures that:
+    - the organization exists,
+    - the current user belongs to the organization,
+    - the project exists,
+    - the project belongs to the organization.
     """
 
     try:
@@ -85,6 +96,9 @@ def list_project_tasks(
     priority: str | None = None,
     assigned_to: UUID | None = None,
     db: Session = Depends(get_db),
+    current_project: Project = Depends(
+        get_current_project
+    ),
     current_user: User = Depends(
         require_permission(
             "tasks.view"
@@ -92,7 +106,7 @@ def list_project_tasks(
     ),
 ):
     """
-    List project tasks.
+    List tasks belonging to the current project.
     """
 
     return get_tasks(
@@ -115,6 +129,9 @@ def get_task_endpoint(
     project_id: UUID,
     task_id: UUID,
     db: Session = Depends(get_db),
+    current_project: Project = Depends(
+        get_current_project
+    ),
     current_user: User = Depends(
         require_permission(
             "tasks.view"
@@ -122,7 +139,7 @@ def get_task_endpoint(
     ),
 ):
     """
-    Retrieve a single task.
+    Retrieve a task from the current project.
     """
 
     task = get_single_task(
@@ -150,6 +167,9 @@ def update_task_endpoint(
     task_id: UUID,
     data: TaskUpdate,
     db: Session = Depends(get_db),
+    current_project: Project = Depends(
+        get_current_project
+    ),
     current_user: User = Depends(
         require_permission(
             "tasks.update"
@@ -157,7 +177,7 @@ def update_task_endpoint(
     ),
 ):
     """
-    Update a task.
+    Update a task belonging to the current project.
     """
 
     try:
@@ -190,6 +210,9 @@ def delete_task_endpoint(
     project_id: UUID,
     task_id: UUID,
     db: Session = Depends(get_db),
+    current_project: Project = Depends(
+        get_current_project
+    ),
     current_user: User = Depends(
         require_permission(
             "tasks.delete"
@@ -197,7 +220,7 @@ def delete_task_endpoint(
     ),
 ):
     """
-    Delete a task.
+    Delete a task belonging to the current project.
     """
 
     try:
