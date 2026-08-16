@@ -25,15 +25,17 @@ def create_comment(
 def get_comment(
     db: Session,
     comment_id: UUID,
+    task_id: UUID,
 ) -> TaskComment | None:
     """
-    Retrieve a single comment.
+    Retrieve a comment belonging to a specific task.
     """
 
     return (
         db.query(TaskComment)
         .filter(
             TaskComment.id == comment_id,
+            TaskComment.task_id == task_id,
         )
         .first()
     )

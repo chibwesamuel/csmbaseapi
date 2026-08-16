@@ -12,8 +12,10 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 
 from app.dependencies.permissions import require_permission
+from app.dependencies.organization import get_current_project
 
 from app.models.user import User
+from app.models.project import Project
 
 from app.schemas.task_comment import (
     TaskCommentCreate,
@@ -25,7 +27,6 @@ from app.schemas.task_comment import (
 from app.services.task_comment import (
     create_new_comment,
     get_task_comments,
-    get_single_comment,
     edit_comment,
     remove_comment,
 )
@@ -53,6 +54,7 @@ def create_comment_endpoint(
     task_id: UUID,
     data: TaskCommentCreate,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "tasks.update"
@@ -61,11 +63,16 @@ def create_comment_endpoint(
 ):
     """
     Create a task comment.
+
+    The project must belong to the requested
+    organization, and the task must belong
+    to the requested project.
     """
 
     try:
         return create_new_comment(
             db,
+            project.id,
             task_id,
             current_user.id,
             data,
@@ -89,6 +96,7 @@ def list_comments_endpoint(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "tasks.view"
@@ -96,15 +104,27 @@ def list_comments_endpoint(
     ),
 ):
     """
-    List task comments.
+    List comments for a task.
+
+    The project must belong to the requested
+    organization, and the task must belong
+    to the requested project.
     """
 
-    return get_task_comments(
-        db,
-        task_id,
-        skip,
-        limit,
-    )
+    try:
+        return get_task_comments(
+            db,
+            project.id,
+            task_id,
+            skip,
+            limit,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        )
 
 
 @router.patch(
@@ -118,6 +138,7 @@ def update_comment_endpoint(
     comment_id: UUID,
     data: TaskCommentUpdate,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "tasks.update"
@@ -126,11 +147,15 @@ def update_comment_endpoint(
 ):
     """
     Update a task comment.
+
+    A user may only update their own comment.
     """
 
     try:
         return edit_comment(
             db,
+            project.id,
+            task_id,
             comment_id,
             current_user.id,
             data,
@@ -159,6 +184,7 @@ def delete_comment_endpoint(
     task_id: UUID,
     comment_id: UUID,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "tasks.update"
@@ -167,11 +193,15 @@ def delete_comment_endpoint(
 ):
     """
     Delete a task comment.
+
+    A user may only delete their own comment.
     """
 
     try:
         remove_comment(
             db,
+            project.id,
+            task_id,
             comment_id,
             current_user.id,
         )
