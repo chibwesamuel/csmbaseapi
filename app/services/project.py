@@ -48,7 +48,6 @@ def create_project(
     return project
 
 
-
 def list_projects(
     db: Session,
     organization_id: UUID,
@@ -83,14 +82,14 @@ def list_projects(
     }
 
 
-
 def get_project(
     db: Session,
     organization_id: UUID,
     project_id: UUID,
 ):
     """
-    Retrieve a single project.
+    Retrieve a single project belonging to an
+    organization.
     """
 
     return (
@@ -103,25 +102,17 @@ def get_project(
     )
 
 
-
 def update_project(
     db: Session,
-    organization_id: UUID,
-    project_id: UUID,
+    project: Project,
     project_data: ProjectUpdate,
 ):
     """
     Update an existing project.
+
+    The project has already been validated by the
+    authorization dependency before reaching this service.
     """
-
-    project = get_project(
-        db,
-        organization_id,
-        project_id,
-    )
-
-    if project is None:
-        return None
 
     updates = project_data.model_dump(
         exclude_unset=True
@@ -132,9 +123,9 @@ def update_project(
         existing = (
             db.query(Project)
             .filter(
-                Project.organization_id == organization_id,
+                Project.organization_id == project.organization_id,
                 Project.slug == updates["slug"],
-                Project.id != project_id,
+                Project.id != project.id,
             )
             .first()
         )
@@ -153,24 +144,16 @@ def update_project(
     return project
 
 
-
 def delete_project(
     db: Session,
-    organization_id: UUID,
-    project_id: UUID,
+    project: Project,
 ):
     """
     Delete a project.
+
+    The project has already been validated by the
+    authorization dependency before reaching this service.
     """
-
-    project = get_project(
-        db,
-        organization_id,
-        project_id,
-    )
-
-    if project is None:
-        return False
 
     db.delete(project)
     db.commit()

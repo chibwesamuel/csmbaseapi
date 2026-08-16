@@ -204,7 +204,7 @@ def accept_invitation(
     membership = OrganizationMember(
         organization_id=invitation.organization_id,
         user_id=user_id,
-        role=role.name,
+        role_id=role.id,
     )
 
 

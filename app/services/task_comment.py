@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from app.models.task import Task
 from app.models.project_member import ProjectMember
 from app.models.user import User
-from app.models.task_comment import TaskComment
 
 from app.schemas.task_comment import (
     TaskCommentCreate,
@@ -21,20 +20,20 @@ from app.repositories.task_comment import (
 )
 
 
-def create_new_comment(
+def _get_task(
     db: Session,
+    project_id: UUID,
     task_id: UUID,
-    user_id: UUID,
-    data: TaskCommentCreate,
-):
+) -> Task:
     """
-    Create a new task comment.
+    Retrieve a task belonging to the requested project.
     """
 
     task = (
         db.query(Task)
         .filter(
             Task.id == task_id,
+            Task.project_id == project_id,
         )
         .first()
     )
@@ -44,10 +43,33 @@ def create_new_comment(
             "Task not found"
         )
 
+    return task
+
+
+def create_new_comment(
+    db: Session,
+    project_id: UUID,
+    task_id: UUID,
+    user_id: UUID,
+    data: TaskCommentCreate,
+):
+    """
+    Create a new task comment.
+
+    The task must belong to the requested project,
+    and the user must be a member of that project.
+    """
+
+    task = _get_task(
+        db,
+        project_id,
+        task_id,
+    )
+
     membership = (
         db.query(ProjectMember)
         .filter(
-            ProjectMember.project_id == task.project_id,
+            ProjectMember.project_id == project_id,
             ProjectMember.user_id == user_id,
         )
         .first()
@@ -60,7 +82,7 @@ def create_new_comment(
 
     return create_comment(
         db,
-        task_id=task_id,
+        task_id=task.id,
         user_id=user_id,
         content=data.content,
     )
@@ -68,13 +90,22 @@ def create_new_comment(
 
 def get_task_comments(
     db: Session,
+    project_id: UUID,
     task_id: UUID,
     skip: int = 0,
     limit: int = 10,
 ):
     """
     List comments for a task.
+
+    The task must belong to the requested project.
     """
+
+    _get_task(
+        db,
+        project_id,
+        task_id,
+    )
 
     total, comments = list_comments(
         db,
@@ -91,33 +122,32 @@ def get_task_comments(
     }
 
 
-def get_single_comment(
-    db: Session,
-    comment_id: UUID,
-):
-    """
-    Retrieve one comment.
-    """
-
-    return get_comment(
-        db,
-        comment_id,
-    )
-
-
 def edit_comment(
     db: Session,
+    project_id: UUID,
+    task_id: UUID,
     comment_id: UUID,
     user_id: UUID,
     data: TaskCommentUpdate,
 ):
     """
     Update a comment.
+
+    The task must belong to the requested project,
+    the comment must belong to the requested task,
+    and the user must own the comment.
     """
+
+    _get_task(
+        db,
+        project_id,
+        task_id,
+    )
 
     comment = get_comment(
         db,
         comment_id,
+        task_id,
     )
 
     if not comment:
@@ -139,16 +169,29 @@ def edit_comment(
 
 def remove_comment(
     db: Session,
+    project_id: UUID,
+    task_id: UUID,
     comment_id: UUID,
     user_id: UUID,
 ):
     """
     Delete a comment.
+
+    The task must belong to the requested project,
+    the comment must belong to the requested task,
+    and the user must own the comment.
     """
+
+    _get_task(
+        db,
+        project_id,
+        task_id,
+    )
 
     comment = get_comment(
         db,
         comment_id,
+        task_id,
     )
 
     if not comment:

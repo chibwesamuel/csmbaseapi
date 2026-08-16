@@ -950,3 +950,197 @@ def test_update_missing_task(
     assert response.json()["message"] == (
         "Task not found"
     )
+
+def test_task_rejects_missing_organization(
+    client,
+    admin_headers,
+):
+    """
+    A non-existent organization must return 404.
+    """
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{uuid.uuid4()}/projects/"
+            f"{uuid.uuid4()}/tasks"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Organization not found"
+    )
+
+
+def test_task_rejects_missing_project(
+    client,
+    admin_headers,
+):
+    """
+    A non-existent project must return 404.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{uuid.uuid4()}/tasks"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )
+
+
+def test_task_rejects_project_from_another_organization(
+    client,
+    admin_headers,
+):
+    """
+    A project belonging to another organization must
+    not be accessible through the requested organization.
+    """
+
+    organization_one = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    organization_two = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization_one["id"],
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_two['id']}/projects/"
+            f"{project['id']}/tasks"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )
+
+def test_create_task_rejects_project_from_another_organization(
+    client,
+    admin_headers,
+):
+    """
+    A task cannot be created in a project belonging
+    to another organization.
+    """
+
+    organization_one = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    organization_two = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization_one["id"],
+    )
+
+    response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_two['id']}/projects/"
+            f"{project['id']}/tasks"
+        ),
+        json={
+            "title": "Unauthorized Task",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )
+
+
+def test_get_task_rejects_project_from_another_organization(
+    client,
+    admin_headers,
+):
+    """
+    A task cannot be retrieved through an organization
+    that does not own its project.
+    """
+
+    organization_one = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    organization_two = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization_one["id"],
+    )
+
+    task_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_one['id']}/projects/"
+            f"{project['id']}/tasks"
+        ),
+        json={
+            "title": "Protected Task",
+        },
+        headers=admin_headers,
+    )
+
+    assert task_response.status_code == 201
+
+    task = task_response.json()
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_two['id']}/projects/"
+            f"{project['id']}/tasks/"
+            f"{task['id']}"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )

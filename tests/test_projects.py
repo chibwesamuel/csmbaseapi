@@ -222,3 +222,101 @@ def test_normal_user_cannot_create_project(
     )
 
     assert response.status_code == 403
+
+def test_project_rejects_missing_organization(
+    client,
+    admin_headers,
+):
+    """
+    A non-existent organization must return 404.
+    """
+
+    response = client.get(
+        f"/api/v1/organizations/{uuid.uuid4()}/projects",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Organization not found"
+    )
+
+
+def test_project_rejects_project_from_another_organization(
+    client,
+    admin_headers,
+):
+    """
+    A project belonging to another organization must
+    not be accessible through the requested organization.
+    """
+
+    organization_one = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    organization_two = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_one['id']}/projects"
+        ),
+        json={
+            "name": "Organization One Project",
+            "slug": "organization-one-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert project_response.status_code == 201
+
+    project = project_response.json()
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_two['id']}/projects/"
+            f"{project['id']}"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )
+
+def test_get_missing_project(
+    client,
+    admin_headers,
+):
+    """
+    A non-existent project must return 404.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{uuid.uuid4()}"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )

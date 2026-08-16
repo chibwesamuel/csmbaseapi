@@ -13,7 +13,12 @@ from app.database.session import get_db
 
 from app.dependencies.permissions import require_permission
 
+from app.dependencies.organization import (
+    get_current_project,
+)
+
 from app.models.user import User
+from app.models.project import Project
 
 from app.schemas.project_member import (
     ProjectMemberCreate,
@@ -47,6 +52,7 @@ def create_member(
     project_id: UUID,
     data: ProjectMemberCreate,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "projects.members.manage"
@@ -55,13 +61,15 @@ def create_member(
 ):
     """
     Add a user to a project.
+
+    The project must belong to the requested organization.
     """
 
     try:
 
         return add_project_member(
             db,
-            project_id,
+            project.id,
             data.user_id,
             data.role,
         )
@@ -84,6 +92,7 @@ def list_members(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "projects.view"
@@ -92,11 +101,13 @@ def list_members(
 ):
     """
     List project members.
+
+    The project must belong to the requested organization.
     """
 
     return get_members(
         db,
-        project_id,
+        project.id,
         skip,
         limit,
     )
@@ -111,6 +122,7 @@ def get_single_member(
     project_id: UUID,
     user_id: UUID,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "projects.view"
@@ -119,11 +131,13 @@ def get_single_member(
 ):
     """
     Retrieve a project member.
+
+    The project must belong to the requested organization.
     """
 
     member = get_member(
         db,
-        project_id,
+        project.id,
         user_id,
     )
 
@@ -146,6 +160,7 @@ def update_member(
     user_id: UUID,
     data: ProjectMemberUpdate,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "projects.members.manage"
@@ -154,13 +169,15 @@ def update_member(
 ):
     """
     Update project member role.
+
+    The project must belong to the requested organization.
     """
 
     try:
 
         return change_member_role(
             db,
-            project_id,
+            project.id,
             user_id,
             data.role,
         )
@@ -181,6 +198,7 @@ def delete_member(
     project_id: UUID,
     user_id: UUID,
     db: Session = Depends(get_db),
+    project: Project = Depends(get_current_project),
     current_user: User = Depends(
         require_permission(
             "projects.members.manage"
@@ -189,13 +207,15 @@ def delete_member(
 ):
     """
     Remove a user from a project.
+
+    The project must belong to the requested organization.
     """
 
     try:
 
         remove_member(
             db,
-            project_id,
+            project.id,
             user_id,
         )
 

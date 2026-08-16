@@ -11,8 +11,17 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 
-from app.dependencies.permissions import require_permission
+from app.dependencies.organization import (
+    get_current_organization,
+    get_current_project,
+)
 
+from app.dependencies.permissions import (
+    require_permission,
+)
+
+from app.models.organization import Organization
+from app.models.project import Project
 from app.models.user import User
 
 from app.schemas.project import (
@@ -25,7 +34,6 @@ from app.schemas.project import (
 from app.services.project import (
     create_project,
     list_projects,
-    get_project,
     update_project,
     delete_project,
 )
@@ -45,6 +53,9 @@ def get_projects(
     organization_id: UUID,
     skip: int = 0,
     limit: int = 10,
+    organization: Organization = Depends(
+        get_current_organization
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -58,7 +69,7 @@ def get_projects(
 
     return list_projects(
         db,
-        organization_id,
+        organization.id,
         skip,
         limit,
     )
@@ -72,6 +83,9 @@ def get_projects(
 def create_new_project(
     organization_id: UUID,
     project_data: ProjectCreate,
+    organization: Organization = Depends(
+        get_current_organization
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -86,7 +100,7 @@ def create_new_project(
     try:
         return create_project(
             db,
-            organization_id,
+            organization.id,
             current_user.id,
             project_data,
         )
@@ -106,7 +120,9 @@ def create_new_project(
 def get_single_project(
     organization_id: UUID,
     project_id: UUID,
-    db: Session = Depends(get_db),
+    project: Project = Depends(
+        get_current_project
+    ),
     current_user: User = Depends(
         require_permission(
             "projects.view"
@@ -116,18 +132,6 @@ def get_single_project(
     """
     Retrieve a project.
     """
-
-    project = get_project(
-        db,
-        organization_id,
-        project_id,
-    )
-
-    if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        )
 
     return project
 
@@ -140,6 +144,9 @@ def update_existing_project(
     organization_id: UUID,
     project_id: UUID,
     project_data: ProjectUpdate,
+    project: Project = Depends(
+        get_current_project
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -152,20 +159,11 @@ def update_existing_project(
     """
 
     try:
-        project = update_project(
+        return update_project(
             db,
-            organization_id,
-            project_id,
+            project,
             project_data,
         )
-
-        if project is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found",
-            )
-
-        return project
 
     except ValueError as error:
 
@@ -181,6 +179,9 @@ def update_existing_project(
 def delete_existing_project(
     organization_id: UUID,
     project_id: UUID,
+    project: Project = Depends(
+        get_current_project
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
@@ -192,17 +193,10 @@ def delete_existing_project(
     Delete a project.
     """
 
-    deleted = delete_project(
+    delete_project(
         db,
-        organization_id,
-        project_id,
+        project,
     )
-
-    if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        )
 
     return {
         "message": "Project deleted successfully"
