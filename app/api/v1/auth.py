@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 
 from app.dependencies.auth import get_current_user
-from app.dependencies.permissions import require_superuser
 
 from app.models.user import User
 
