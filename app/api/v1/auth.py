@@ -26,7 +26,7 @@ from app.services.auth import (
 )
 
 from app.services.refresh_token import (
-    validate_refresh_token,
+    rotate_user_refresh_token,
     revoke_refresh_token,
 )
 
@@ -68,17 +68,10 @@ def register(
     Register a new user.
     """
 
-    try:
-        return register_user(
-            db,
-            user,
-        )
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
-        )
+    return register_user(
+        db,
+        user,
+    )
 
 
 @router.post(
@@ -106,18 +99,11 @@ def login(
     Authenticate a user and return JWT tokens.
     """
 
-    try:
-        return login_user(
-            db=db,
-            email=credentials.email,
-            password=credentials.password,
-        )
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(error),
-        )
+    return login_user(
+        db=db,
+        email=credentials.email,
+        password=credentials.password,
+    )
 
 
 @router.post(
@@ -182,19 +168,21 @@ def refresh_access_token(
     db: Session = Depends(get_db),
 ):
     """
-    Generate a new access token using a refresh token.
+    Rotate a refresh token and issue new access credentials.
     """
 
-    user = validate_refresh_token(
+    result = rotate_user_refresh_token(
         db,
         request.refresh_token,
     )
 
-    if not user:
+    if not result:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
+
+    user, new_refresh_token = result
 
     access_token = create_access_token(
         {
@@ -204,7 +192,7 @@ def refresh_access_token(
 
     return Token(
         access_token=access_token,
-        refresh_token=request.refresh_token,
+        refresh_token=new_refresh_token,
         token_type="bearer",
     )
 
