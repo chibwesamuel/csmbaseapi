@@ -76,6 +76,22 @@ def get_project(
         .first()
     )
 
+def get_project_by_id(
+    db: Session,
+    project_id: UUID,
+) -> Project | None:
+    """
+    Retrieve a project by ID.
+    """
+
+    return (
+        project_query(db)
+        .filter(
+            Project.id == project_id,
+        )
+        .first()
+    )
+
 
 def get_project_by_slug(
     db: Session,

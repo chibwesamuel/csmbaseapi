@@ -8,24 +8,31 @@ from app.schemas.project import (
     ProjectUpdate,
 )
 
+from app.repositories.project import (
+    get_projects,
+    count_projects,
+    get_project,
+    get_project_by_slug,
+    create_project as repository_create_project,
+    update_project as repository_update_project,
+    delete_project as repository_delete_project,
+)
+
 
 def create_project(
     db: Session,
     organization_id: UUID,
     user_id: UUID,
     project_data: ProjectCreate,
-):
+) -> Project:
     """
     Create a new project inside an organization.
     """
 
-    existing = (
-        db.query(Project)
-        .filter(
-            Project.organization_id == organization_id,
-            Project.slug == project_data.slug,
-        )
-        .first()
+    existing = get_project_by_slug(
+        db,
+        organization_id,
+        project_data.slug,
     )
 
     if existing:
@@ -41,11 +48,10 @@ def create_project(
         description=project_data.description,
     )
 
-    db.add(project)
-    db.commit()
-    db.refresh(project)
-
-    return project
+    return repository_create_project(
+        db,
+        project,
+    )
 
 
 def list_projects(
@@ -58,20 +64,16 @@ def list_projects(
     Return paginated projects for an organization.
     """
 
-    query = (
-        db.query(Project)
-        .filter(
-            Project.organization_id == organization_id
-        )
+    total = count_projects(
+        db,
+        organization_id,
     )
 
-    total = query.count()
-
-    projects = (
-        query
-        .offset(skip)
-        .limit(limit)
-        .all()
+    projects = get_projects(
+        db,
+        organization_id,
+        skip,
+        limit,
     )
 
     return {
@@ -82,23 +84,19 @@ def list_projects(
     }
 
 
-def get_project(
+def get_project_for_organization(
     db: Session,
     organization_id: UUID,
     project_id: UUID,
-):
+) -> Project | None:
     """
-    Retrieve a single project belonging to an
-    organization.
+    Retrieve a project belonging to an organization.
     """
 
-    return (
-        db.query(Project)
-        .filter(
-            Project.organization_id == organization_id,
-            Project.id == project_id,
-        )
-        .first()
+    return get_project(
+        db,
+        organization_id,
+        project_id,
     )
 
 
@@ -106,7 +104,7 @@ def update_project(
     db: Session,
     project: Project,
     project_data: ProjectUpdate,
-):
+) -> Project:
     """
     Update an existing project.
 
@@ -120,34 +118,31 @@ def update_project(
 
     if "slug" in updates:
 
-        existing = (
-            db.query(Project)
-            .filter(
-                Project.organization_id == project.organization_id,
-                Project.slug == updates["slug"],
-                Project.id != project.id,
-            )
-            .first()
+        existing = get_project_by_slug(
+            db,
+            project.organization_id,
+            updates["slug"],
         )
 
-        if existing:
+        if (
+            existing
+            and existing.id != project.id
+        ):
             raise ValueError(
                 "Project slug already exists in this organization"
             )
 
-    for key, value in updates.items():
-        setattr(project, key, value)
-
-    db.commit()
-    db.refresh(project)
-
-    return project
+    return repository_update_project(
+        db,
+        project,
+        updates,
+    )
 
 
 def delete_project(
     db: Session,
     project: Project,
-):
+) -> bool:
     """
     Delete a project.
 
@@ -155,7 +150,7 @@ def delete_project(
     authorization dependency before reaching this service.
     """
 
-    db.delete(project)
-    db.commit()
-
-    return True
+    return repository_delete_project(
+        db,
+        project,
+    )
