@@ -13,6 +13,7 @@ from app.models.role import Role
 
 from app.repositories.user import get_user_by_email
 from app.repositories.user_role import assign_role_to_user
+from app.models.organization_member import OrganizationMember
 
 from app.core.security import hash_password
 
@@ -406,6 +407,7 @@ def notification_user(
     return registered_user
 
 @pytest.fixture
+
 def notification_headers(
     client,
     notification_user,
@@ -429,4 +431,254 @@ def notification_headers(
 
     return {
         "Authorization": f"Bearer {token}"
+    }
+
+@pytest.fixture
+def organization_context(
+    client,
+    db,
+    authenticated_headers,
+    unique_user,
+    seed_roles,
+):
+    """
+    Create an organization and users representing
+    each organization membership level.
+
+    Returns:
+    - organization owner
+    - organization admin
+    - organization member
+    - non-member
+    """
+
+    # -----------------------------------------------------
+    # Create organization as the authenticated user.
+    # This user automatically becomes the owner.
+    # -----------------------------------------------------
+
+    unique = uuid.uuid4().hex[:8]
+
+    organization_response = client.post(
+        "/api/v1/organizations/",
+        json={
+            "name": f"Authorization Org {unique}",
+            "slug": f"authorization-org-{unique}",
+        },
+        headers=authenticated_headers,
+    )
+
+    assert organization_response.status_code == 201
+
+    organization = organization_response.json()
+
+    owner = get_user_by_email(
+        db,
+        unique_user["email"],
+    )
+
+    assert owner is not None
+
+    # -----------------------------------------------------
+    # Get organization roles
+    # -----------------------------------------------------
+
+    owner_role = (
+        db.query(Role)
+        .filter(Role.name == "owner")
+        .first()
+    )
+
+    admin_role = (
+        db.query(Role)
+        .filter(Role.name == "admin")
+        .first()
+    )
+
+    member_role = (
+        db.query(Role)
+        .filter(Role.name == "member")
+        .first()
+    )
+
+    assert owner_role is not None
+    assert admin_role is not None
+    assert member_role is not None
+
+    # -----------------------------------------------------
+    # Create organization admin
+    # -----------------------------------------------------
+
+    admin_unique = uuid.uuid4().hex[:8]
+
+    admin_payload = {
+        "email": f"org_admin_{admin_unique}@example.com",
+        "username": f"org_admin_{admin_unique}",
+        "password": "Password123!",
+        "first_name": "Organization",
+        "last_name": "Admin",
+    }
+
+    admin_response = client.post(
+        "/api/v1/auth/register",
+        json=admin_payload,
+    )
+
+    assert admin_response.status_code == 201
+
+    organization_admin = get_user_by_email(
+        db,
+        admin_payload["email"],
+    )
+
+    assert organization_admin is not None
+
+    assign_role_to_user(
+        db,
+        organization_admin,
+        admin_role,
+    )
+
+    # -----------------------------------------------------
+    # Create organization member
+    # -----------------------------------------------------
+
+    member_unique = uuid.uuid4().hex[:8]
+
+    member_payload = {
+        "email": f"org_member_{member_unique}@example.com",
+        "username": f"org_member_{member_unique}",
+        "password": "Password123!",
+        "first_name": "Organization",
+        "last_name": "Member",
+    }
+
+    member_response = client.post(
+        "/api/v1/auth/register",
+        json=member_payload,
+    )
+
+    assert member_response.status_code == 201
+
+    organization_member = get_user_by_email(
+        db,
+        member_payload["email"],
+    )
+
+    assert organization_member is not None
+
+    # -----------------------------------------------------
+    # Create non-member
+    # -----------------------------------------------------
+
+    outsider_unique = uuid.uuid4().hex[:8]
+
+    outsider_payload = {
+        "email": f"outsider_{outsider_unique}@example.com",
+        "username": f"outsider_{outsider_unique}",
+        "password": "Password123!",
+        "first_name": "Organization",
+        "last_name": "Outsider",
+    }
+
+    outsider_response = client.post(
+        "/api/v1/auth/register",
+        json=outsider_payload,
+    )
+
+    assert outsider_response.status_code == 201
+
+    outsider = get_user_by_email(
+        db,
+        outsider_payload["email"],
+    )
+
+    assert outsider is not None
+
+    # -----------------------------------------------------
+    # Create admin membership
+    # -----------------------------------------------------
+
+    admin_membership = OrganizationMember(
+        organization_id=organization["id"],
+        user_id=organization_admin.id,
+        role_id=admin_role.id,
+    )
+
+    db.add(admin_membership)
+
+    # -----------------------------------------------------
+    # Create member membership
+    # -----------------------------------------------------
+
+    member_membership = OrganizationMember(
+        organization_id=organization["id"],
+        user_id=organization_member.id,
+        role_id=member_role.id,
+    )
+
+    db.add(member_membership)
+
+    db.commit()
+
+    # -----------------------------------------------------
+    # Login users
+    # -----------------------------------------------------
+
+    admin_login = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": admin_payload["email"],
+            "password": admin_payload["password"],
+        },
+    )
+
+    assert admin_login.status_code == 200
+
+    member_login = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": member_payload["email"],
+            "password": member_payload["password"],
+        },
+    )
+
+    assert member_login.status_code == 200
+
+    outsider_login = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": outsider_payload["email"],
+            "password": outsider_payload["password"],
+        },
+    )
+
+    assert outsider_login.status_code == 200
+
+    return {
+        "organization": organization,
+
+        "owner": owner,
+        "owner_headers": authenticated_headers,
+
+        "admin": organization_admin,
+        "admin_headers": {
+            "Authorization": (
+                f"Bearer {admin_login.json()['access_token']}"
+            )
+        },
+
+        "member": organization_member,
+        "member_headers": {
+            "Authorization": (
+                f"Bearer {member_login.json()['access_token']}"
+            )
+        },
+
+        "outsider": outsider,
+        "outsider_headers": {
+            "Authorization": (
+                f"Bearer {outsider_login.json()['access_token']}"
+            )
+        },
     }

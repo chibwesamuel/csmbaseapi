@@ -1,11 +1,27 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
+
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 
 from app.dependencies.auth import get_current_user
-from app.dependencies.permissions import require_permission
+
+from app.dependencies.permissions import (
+    require_permission,
+)
+
+from app.dependencies.organization_permissions import (
+    require_organization_admin,
+    require_organization_owner,
+    require_organization_member,
+)
 
 from app.models.user import User
 
@@ -31,22 +47,35 @@ router = APIRouter(
     tags=["Organizations"],
 )
 
+
+# =========================================================
+# MY ORGANIZATIONS
+# =========================================================
+
 @router.get(
     "/my",
     response_model=list[OrganizationResponse],
 )
 def read_my_organizations(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        get_current_user
+    ),
 ):
     """
-    Retrieve organizations for the authenticated user.
+    Retrieve all organizations belonging to
+    the authenticated user.
     """
 
     return get_my_organizations(
         db,
         current_user.id,
     )
+
+
+# =========================================================
+# LIST ALL ORGANIZATIONS
+# =========================================================
 
 @router.get(
     "/",
@@ -58,9 +87,19 @@ def read_organizations(
     search: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_permission("organizations.view")
+        require_permission(
+            "organizations.view"
+        )
     ),
 ):
+    """
+    Retrieve a paginated list of organizations.
+
+    Requires the global:
+        organizations.view
+
+    permission.
+    """
 
     return list_organizations(
         db,
@@ -70,6 +109,10 @@ def read_organizations(
     )
 
 
+# =========================================================
+# GET SINGLE ORGANIZATION
+# =========================================================
+
 @router.get(
     "/{organization_id}",
     response_model=OrganizationResponse,
@@ -77,10 +120,16 @@ def read_organizations(
 def read_organization(
     organization_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("organizations.view")
+    membership=Depends(
+        require_organization_member
     ),
 ):
+    """
+    Retrieve a single organization.
+
+    The authenticated user must be a member
+    of the requested organization.
+    """
 
     organization = get_organization(
         db,
@@ -95,6 +144,10 @@ def read_organization(
 
     return organization
 
+
+# =========================================================
+# CREATE ORGANIZATION
+# =========================================================
 
 @router.post(
     "/",
@@ -111,8 +164,8 @@ def create_organization(
     """
     Create a new organization.
 
-    The authenticated user automatically becomes
-    the organization owner.
+    The authenticated user automatically
+    becomes the organization owner.
     """
 
     organization = create_new_organization(
@@ -136,6 +189,10 @@ def create_organization(
     return organization
 
 
+# =========================================================
+# UPDATE ORGANIZATION
+# =========================================================
+
 @router.put(
     "/{organization_id}",
     response_model=OrganizationResponse,
@@ -144,10 +201,17 @@ def update_organization(
     organization_id: UUID,
     organization_data: OrganizationUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("organizations.update")
+    membership=Depends(
+        require_organization_admin
     ),
 ):
+    """
+    Update an organization.
+
+    The authenticated user must be either:
+    - the organization owner
+    - an organization admin
+    """
 
     organization = update_existing_organization(
         db,
@@ -164,16 +228,26 @@ def update_organization(
     return organization
 
 
+# =========================================================
+# DELETE ORGANIZATION
+# =========================================================
+
 @router.delete(
     "/{organization_id}",
 )
 def delete_organization(
     organization_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission("organizations.delete")
+    membership=Depends(
+        require_organization_owner
     ),
 ):
+    """
+    Delete an organization.
+
+    Only the organization owner can
+    delete the organization.
+    """
 
     deleted = delete_existing_organization(
         db,

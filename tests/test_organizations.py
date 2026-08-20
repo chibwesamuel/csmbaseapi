@@ -128,7 +128,10 @@ def test_get_my_organizations(client, authenticated_headers):
     )
 
 
-def test_get_organization(client, admin_headers, authenticated_headers):
+def test_get_organization(
+    client,
+    authenticated_headers,
+):
 
     unique = uuid.uuid4().hex[:8]
 
@@ -150,7 +153,7 @@ def test_get_organization(client, admin_headers, authenticated_headers):
 
     response = client.get(
         f"/api/v1/organizations/{organization_id}",
-        headers=admin_headers,
+        headers=authenticated_headers,
     )
 
     assert response.status_code == 200
@@ -161,7 +164,10 @@ def test_get_organization(client, admin_headers, authenticated_headers):
     assert data["slug"] == payload["slug"]
 
 
-def test_update_organization(client, admin_headers, authenticated_headers):
+def test_update_organization(
+    client,
+    authenticated_headers,
+):
 
     unique = uuid.uuid4().hex[:8]
 
@@ -189,7 +195,7 @@ def test_update_organization(client, admin_headers, authenticated_headers):
     response = client.put(
         f"/api/v1/organizations/{organization_id}",
         json=update_payload,
-        headers=admin_headers,
+        headers=authenticated_headers,
     )
 
     assert response.status_code == 200
@@ -200,7 +206,10 @@ def test_update_organization(client, admin_headers, authenticated_headers):
     assert data["description"] == update_payload["description"]
 
 
-def test_delete_organization(client, admin_headers, authenticated_headers):
+def test_delete_organization(
+    client,
+    authenticated_headers,
+):
 
     unique = uuid.uuid4().hex[:8]
 
@@ -222,14 +231,16 @@ def test_delete_organization(client, admin_headers, authenticated_headers):
 
     response = client.delete(
         f"/api/v1/organizations/{organization_id}",
-        headers=admin_headers,
+        headers=authenticated_headers,
     )
 
     assert response.status_code == 200
 
     data = response.json()
 
-    assert data["message"] == "Organization deleted successfully"
+    assert data["message"] == (
+        "Organization deleted successfully"
+    )
 
 
 def test_get_organization_not_found(client, admin_headers):
@@ -329,11 +340,30 @@ def test_normal_user_cannot_list_organizations(
 
 def test_normal_user_cannot_update_organization(
     client,
+    admin_headers,
     authenticated_headers,
 ):
 
+    unique = uuid.uuid4().hex[:8]
+
+    payload = {
+        "name": f"Protected Org {unique}",
+        "slug": f"protected-org-{unique}",
+        "description": "Protected organization",
+    }
+
+    create_response = client.post(
+        "/api/v1/organizations/",
+        json=payload,
+        headers=admin_headers,
+    )
+
+    assert create_response.status_code == 201
+
+    organization_id = create_response.json()["id"]
+
     response = client.put(
-        f"/api/v1/organizations/{uuid.uuid4()}",
+        f"/api/v1/organizations/{organization_id}",
         json={
             "name": "Blocked Update",
         },
@@ -344,11 +374,30 @@ def test_normal_user_cannot_update_organization(
 
 def test_normal_user_cannot_delete_organization(
     client,
+    admin_headers,
     authenticated_headers,
 ):
 
+    unique = uuid.uuid4().hex[:8]
+
+    payload = {
+        "name": f"Protected Delete Org {unique}",
+        "slug": f"protected-delete-org-{unique}",
+        "description": "Protected organization",
+    }
+
+    create_response = client.post(
+        "/api/v1/organizations/",
+        json=payload,
+        headers=admin_headers,
+    )
+
+    assert create_response.status_code == 201
+
+    organization_id = create_response.json()["id"]
+
     response = client.delete(
-        f"/api/v1/organizations/{uuid.uuid4()}",
+        f"/api/v1/organizations/{organization_id}",
         headers=authenticated_headers,
     )
 
@@ -365,3 +414,131 @@ def test_invalid_organization_uuid(
     )
 
     assert response.status_code == 422
+
+def test_organization_owner_can_view(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.get(
+        f"/api/v1/organizations/{organization_id}",
+        headers=context["owner_headers"],
+    )
+
+    assert response.status_code == 200
+
+
+def test_organization_admin_can_view(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.get(
+        f"/api/v1/organizations/{organization_id}",
+        headers=context["admin_headers"],
+    )
+
+    assert response.status_code == 200
+
+
+def test_organization_member_can_view(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.get(
+        f"/api/v1/organizations/{organization_id}",
+        headers=context["member_headers"],
+    )
+
+    assert response.status_code == 200
+
+
+def test_non_member_cannot_view_organization(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.get(
+        f"/api/v1/organizations/{organization_id}",
+        headers=context["outsider_headers"],
+    )
+
+    assert response.status_code == 403
+
+
+def test_organization_owner_can_update(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.put(
+        f"/api/v1/organizations/{organization_id}",
+        json={
+            "name": "Owner Updated Organization",
+        },
+        headers=context["owner_headers"],
+    )
+
+    assert response.status_code == 200
+
+
+def test_organization_admin_can_update(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.put(
+        f"/api/v1/organizations/{organization_id}",
+        json={
+            "name": "Admin Updated Organization",
+        },
+        headers=context["admin_headers"],
+    )
+
+    assert response.status_code == 200
+
+
+def test_organization_member_cannot_update(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.put(
+        f"/api/v1/organizations/{organization_id}",
+        json={
+            "name": "Blocked Update",
+        },
+        headers=context["member_headers"],
+    )
+
+    assert response.status_code == 403
+
+
+def test_organization_admin_cannot_delete(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.delete(
+        f"/api/v1/organizations/{organization_id}",
+        headers=context["admin_headers"],
+    )
+
+    assert response.status_code == 403

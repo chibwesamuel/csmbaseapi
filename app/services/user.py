@@ -17,8 +17,10 @@ from app.core.security import hash_password
 from app.schemas.user import UserCreate
 
 from app.schemas.user import UserUpdate
-from app.core.exceptions import EmailAlreadyRegistered
-
+from app.core.exceptions import (
+    EmailAlreadyRegistered,
+    UsernameAlreadyRegistered,
+)
 
 import math
 
@@ -100,9 +102,7 @@ def create_user(
     )
 
     if existing_email:
-        raise ValueError(
-            "Email already registered"
-        )
+        raise EmailAlreadyRegistered()
 
 
     existing_username = get_user_by_username(
@@ -111,9 +111,7 @@ def create_user(
     )
 
     if existing_username:
-        raise ValueError(
-            "Username already taken"
-        )
+        raise UsernameAlreadyRegistered()
 
 
     hashed_password = hash_password(

@@ -42,6 +42,20 @@ class EmailAlreadyRegistered(AppException):
             status_code=400,
         )
 
+class UsernameAlreadyRegistered(AppException):
+    """
+    Raised when attempting to register a username
+    that already exists.
+    """
+
+    def __init__(
+        self,
+        message: str = "Username already registered",
+    ):
+        super().__init__(
+            message=message,
+            status_code=400,
+        )
 
 class InvalidCredentials(AppException):
     """

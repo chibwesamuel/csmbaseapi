@@ -168,17 +168,10 @@ def create_new_user(
     Create a new user.
     """
 
-    try:
-        return create_user(
-            db,
-            user_data,
-        )
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
-        )
+    return create_user(
+        db,
+        user_data,
+    )
 
 
 # ==========================================================
