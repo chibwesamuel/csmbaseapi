@@ -49,7 +49,8 @@ def test_refresh_access_token(
     unique_user,
 ):
     """
-    A valid refresh token should generate a new access token.
+    A valid refresh token should generate new access
+    and refresh tokens.
     """
 
     tokens = register_and_login(
@@ -69,9 +70,12 @@ def test_refresh_access_token(
     refreshed = response.json()
 
     assert "access_token" in refreshed
-    assert refreshed["refresh_token"] == (
+    assert "refresh_token" in refreshed
+
+    assert refreshed["refresh_token"] != (
         tokens["refresh_token"]
     )
+
     assert refreshed["token_type"] == "bearer"
 
 
@@ -183,4 +187,97 @@ def test_logout_unknown_refresh_token(
 
     assert response.json()["message"] == (
         "Refresh token not found"
+    )
+
+def test_refresh_token_is_rotated(
+    client,
+    unique_user,
+):
+    """
+    Refreshing should revoke the old token and issue a new one.
+    """
+
+    tokens = register_and_login(
+        client,
+        unique_user,
+    )
+
+    old_refresh_token = tokens["refresh_token"]
+
+    response = client.post(
+        "/api/v1/auth/refresh",
+        json={
+            "refresh_token": old_refresh_token,
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    refreshed = response.json()
+
+    assert "access_token" in refreshed
+    assert "refresh_token" in refreshed
+
+    assert refreshed["refresh_token"] != (
+        old_refresh_token
+    )
+
+    assert refreshed["token_type"] == "bearer"
+
+
+def test_rotated_refresh_token_cannot_be_reused(
+    client,
+    unique_user,
+):
+    """
+    A refresh token that has already been rotated
+    cannot be used again.
+    """
+
+    tokens = register_and_login(
+        client,
+        unique_user,
+    )
+
+    old_refresh_token = tokens["refresh_token"]
+
+    first_refresh = client.post(
+        "/api/v1/auth/refresh",
+        json={
+            "refresh_token": old_refresh_token,
+        },
+    )
+
+    assert first_refresh.status_code == status.HTTP_200_OK
+
+    new_refresh_token = first_refresh.json()[
+        "refresh_token"
+    ]
+
+    second_refresh = client.post(
+        "/api/v1/auth/refresh",
+        json={
+            "refresh_token": old_refresh_token,
+        },
+    )
+
+    assert second_refresh.status_code == (
+        status.HTTP_401_UNAUTHORIZED
+    )
+
+    assert second_refresh.json()["message"] == (
+        "Invalid refresh token"
+    )
+
+    # The replacement token should also have been
+    # invalidated because reuse was detected.
+    third_refresh = client.post(
+        "/api/v1/auth/refresh",
+        json={
+            "refresh_token": new_refresh_token,
+        },
+    )
+
+    assert third_refresh.status_code == (
+        status.HTTP_401_UNAUTHORIZED
     )

@@ -351,12 +351,13 @@ def test_cannot_change_last_owner_role(
 
 def test_normal_user_cannot_list_members(
     client,
+    admin_headers,
     authenticated_headers,
 ):
 
     organization = create_test_organization(
         client,
-        authenticated_headers,
+        admin_headers,
     )
 
     response = client.get(
@@ -369,12 +370,13 @@ def test_normal_user_cannot_list_members(
 
 def test_normal_user_cannot_add_member(
     client,
+    admin_headers,
     authenticated_headers,
 ):
 
     organization = create_test_organization(
         client,
-        authenticated_headers,
+        admin_headers,
     )
 
     user = create_test_user(client)
@@ -452,3 +454,141 @@ def test_normal_user_cannot_remove_member(
     )
 
     assert response.status_code == 403
+
+def test_organization_member_can_list_members(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.get(
+        f"/api/v1/organizations/{organization_id}/members",
+        headers=context["member_headers"],
+    )
+
+    assert response.status_code == 200
+
+
+def test_non_member_cannot_list_members(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.get(
+        f"/api/v1/organizations/{organization_id}/members",
+        headers=context["outsider_headers"],
+    )
+
+    assert response.status_code == 403
+
+
+def test_organization_member_cannot_add_member(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    user = create_test_user(client)
+
+    response = client.post(
+        f"/api/v1/organizations/{organization_id}/members",
+        json={
+            "user_id": user["id"],
+            "role": "member",
+        },
+        headers=context["member_headers"],
+    )
+
+    assert response.status_code == 403
+
+
+def test_organization_admin_can_add_member(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    user = create_test_user(client)
+
+    response = client.post(
+        f"/api/v1/organizations/{organization_id}/members",
+        json={
+            "user_id": user["id"],
+            "role": "member",
+        },
+        headers=context["admin_headers"],
+    )
+
+    assert response.status_code == 201
+
+
+def test_organization_member_cannot_change_role(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.patch(
+        f"/api/v1/organizations/{organization_id}/members/{context['member'].id}",
+        json={
+            "role": "admin",
+        },
+        headers=context["member_headers"],
+    )
+
+    assert response.status_code == 403
+
+
+def test_organization_admin_can_change_role(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.patch(
+        f"/api/v1/organizations/{organization_id}/members/{context['member'].id}",
+        json={
+            "role": "admin",
+        },
+        headers=context["admin_headers"],
+    )
+
+    assert response.status_code == 200
+    assert response.json()["role"]["name"] == "admin"
+
+
+def test_organization_member_cannot_remove_member(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.delete(
+        f"/api/v1/organizations/{organization_id}/members/{context['member'].id}",
+        headers=context["member_headers"],
+    )
+
+    assert response.status_code == 403
+
+
+def test_organization_admin_can_remove_member(
+    client,
+    organization_context,
+):
+    context = organization_context
+    organization_id = context["organization"]["id"]
+
+    response = client.delete(
+        f"/api/v1/organizations/{organization_id}/members/{context['member'].id}",
+        headers=context["admin_headers"],
+    )
+
+    assert response.status_code == 200

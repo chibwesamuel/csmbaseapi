@@ -46,6 +46,23 @@ def get_project_member(
         .first()
     )
 
+def count_project_owners(
+    db: Session,
+    project_id: UUID,
+) -> int:
+    """
+    Count owners of a project.
+    """
+
+    return (
+        db.query(ProjectMember)
+        .filter(
+            ProjectMember.project_id == project_id,
+            ProjectMember.role == "owner",
+        )
+        .count()
+    )
+
 
 def list_project_members(
     db: Session,

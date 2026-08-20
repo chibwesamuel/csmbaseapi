@@ -1,33 +1,33 @@
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 
-from app.core.exceptions import EmailAlreadyRegistered
+from app.core.exceptions import AppException
 from app.core.responses import error_response
 
 
 # ==========================================================
-# Custom Exception Handlers
+# Application Exception Handler
 # ==========================================================
 
-
-async def email_exists_exception_handler(
+async def app_exception_handler(
     request: Request,
-    exc: EmailAlreadyRegistered,
+    exc: AppException,
 ):
     """
-    Handle duplicate email registration attempts.
+    Convert application-level exceptions into
+    standardized HTTP responses.
     """
 
     return error_response(
         message=exc.message,
-        status_code=400,
+        status_code=exc.status_code,
+        headers=exc.headers,
     )
 
 
 # ==========================================================
 # FastAPI HTTP Exception Handler
 # ==========================================================
-
 
 async def http_exception_handler(
     request: Request,
@@ -52,7 +52,6 @@ async def http_exception_handler(
 # Validation Exception Handler
 # ==========================================================
 
-
 async def validation_exception_handler(
     request: Request,
     exc: RequestValidationError,
@@ -71,7 +70,6 @@ async def validation_exception_handler(
 # ==========================================================
 # Global Exception Handler
 # ==========================================================
-
 
 async def global_exception_handler(
     request: Request,

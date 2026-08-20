@@ -2,9 +2,13 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.user import User
-from app.models.project import Project
-from app.models.project_member import ProjectMember
+from app.repositories.project import (
+    get_project_by_id,
+)
+
+from app.repositories.user import (
+    get_user_by_id,
+)
 
 from app.repositories.project_member import (
     create_project_member,
@@ -12,6 +16,7 @@ from app.repositories.project_member import (
     list_project_members,
     update_project_member,
     delete_project_member,
+    count_project_owners,
 )
 
 
@@ -25,12 +30,9 @@ def add_project_member(
     Add a user to a project.
     """
 
-    project = (
-        db.query(Project)
-        .filter(
-            Project.id == project_id
-        )
-        .first()
+    project = get_project_by_id(
+        db,
+        project_id,
     )
 
     if not project:
@@ -39,12 +41,9 @@ def add_project_member(
         )
 
 
-    user = (
-        db.query(User)
-        .filter(
-            User.id == user_id
-        )
-        .first()
+    user = get_user_by_id(
+        db,
+        user_id,
     )
 
     if not user:
@@ -141,13 +140,9 @@ def change_member_role(
         membership.role == "owner"
         and role != "owner"
     ):
-        owners = (
-            db.query(ProjectMember)
-            .filter(
-                ProjectMember.project_id == project_id,
-                ProjectMember.role == "owner",
-            )
-            .count()
+        owners = count_project_owners(
+            db,
+            project_id,
         )
 
         if owners <= 1:
@@ -186,13 +181,9 @@ def remove_member(
 
     if membership.role == "owner":
 
-        owners = (
-            db.query(ProjectMember)
-            .filter(
-                ProjectMember.project_id == project_id,
-                ProjectMember.role == "owner",
-            )
-            .count()
+        owners = count_project_owners(
+            db,
+            project_id,
         )
 
         if owners <= 1:

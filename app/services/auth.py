@@ -20,7 +20,10 @@ from app.services.refresh_token import (
     create_user_refresh_token,
 )
 
-from app.core.exceptions import email_already_registered
+from app.core.exceptions import (
+    EmailAlreadyRegistered,
+    InvalidCredentials,
+)
 
 
 def register_user(
@@ -34,7 +37,7 @@ def register_user(
     )
 
     if existing_user:
-        email_already_registered()
+        raise EmailAlreadyRegistered()
 
     hashed_password = hash_password(
         user_data.password
@@ -86,9 +89,7 @@ def login_user(
     )
 
     if not user:
-        raise ValueError(
-            "Invalid email or password"
-        )
+        raise InvalidCredentials()
 
     access_token = create_access_token(
         {

@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
-from app.models.role import Role
+from app.repositories.role import (
+    get_role_by_id,
+)
 
 from app.repositories.organization import (
     get_organization_by_id,
@@ -90,12 +92,9 @@ def add_member(
             "User not found"
         )
 
-    role = (
-        db.query(Role)
-        .filter(
-            Role.id == role_id
-        )
-        .first()
+    role = get_role_by_id(
+        db,
+        role_id,
     )
 
     if role is None:
@@ -148,12 +147,9 @@ def change_member_role(
             "Role not found"
         )
 
-    new_role = (
-        db.query(Role)
-        .filter(
-            Role.id == role_id
-        )
-        .first()
+    new_role = get_role_by_id(
+        db,
+        role_id,
     )
 
     if new_role is None:

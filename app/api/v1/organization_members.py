@@ -11,7 +11,10 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 
-from app.dependencies.permissions import require_permission
+from app.dependencies.organization_permissions import (
+    require_organization_admin,
+    require_organization_member,
+)
 
 from app.models.organization import Organization
 from app.models.user import User
@@ -37,6 +40,10 @@ router = APIRouter(
     tags=["Organization Members"],
 )
 
+
+# =========================================================
+# HELPERS
+# =========================================================
 
 def check_organization_exists(
     db: Session,
@@ -68,7 +75,8 @@ def get_role_by_name(
     role_name: str,
 ):
     """
-    Resolve organization role name into Role model.
+    Resolve an organization role name into
+    the corresponding Role model.
     """
 
     role = (
@@ -88,6 +96,10 @@ def get_role_by_name(
     return role
 
 
+# =========================================================
+# LIST ORGANIZATION MEMBERS
+# =========================================================
+
 @router.get(
     "/{organization_id}/members",
     response_model=PaginatedOrganizationMembersResponse,
@@ -97,14 +109,15 @@ def get_organization_members(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission(
-            "organizations.members.view"
-        )
+    membership=Depends(
+        require_organization_member
     ),
 ):
     """
     List all members belonging to an organization.
+
+    Any authenticated member of the organization
+    may view its members.
     """
 
     check_organization_exists(
@@ -120,6 +133,10 @@ def get_organization_members(
     )
 
 
+# =========================================================
+# ADD ORGANIZATION MEMBER
+# =========================================================
+
 @router.post(
     "/{organization_id}/members",
     response_model=OrganizationMemberResponse,
@@ -129,14 +146,15 @@ def create_organization_member(
     organization_id: UUID,
     member_data: OrganizationMemberCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission(
-            "organizations.members.create"
-        )
+    membership=Depends(
+        require_organization_admin
     ),
 ):
     """
     Add a user to an organization.
+
+    Only organization owners and administrators
+    may add members.
     """
 
     check_organization_exists(
@@ -185,6 +203,10 @@ def create_organization_member(
         )
 
 
+# =========================================================
+# UPDATE ORGANIZATION MEMBER ROLE
+# =========================================================
+
 @router.patch(
     "/{organization_id}/members/{user_id}",
     response_model=OrganizationMemberResponse,
@@ -194,14 +216,15 @@ def update_organization_member(
     user_id: UUID,
     member_data: OrganizationMemberUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission(
-            "organizations.members.update"
-        )
+    membership=Depends(
+        require_organization_admin
     ),
 ):
     """
     Update an organization member's role.
+
+    Only organization owners and administrators
+    may change member roles.
     """
 
     check_organization_exists(
@@ -244,6 +267,10 @@ def update_organization_member(
         )
 
 
+# =========================================================
+# REMOVE ORGANIZATION MEMBER
+# =========================================================
+
 @router.delete(
     "/{organization_id}/members/{user_id}",
 )
@@ -251,14 +278,15 @@ def delete_organization_member(
     organization_id: UUID,
     user_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(
-        require_permission(
-            "organizations.members.delete"
-        )
+    membership=Depends(
+        require_organization_admin
     ),
 ):
     """
     Remove a user from an organization.
+
+    Only organization owners and administrators
+    may remove members.
     """
 
     check_organization_exists(

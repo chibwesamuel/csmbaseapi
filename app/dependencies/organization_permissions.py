@@ -21,8 +21,8 @@ def get_membership(
     db: Session = Depends(get_db),
 ):
     """
-    Retrieve the user's membership record
-    inside the current organization.
+    Retrieve the current user's membership in
+    the current organization.
     """
 
     membership = (
@@ -67,7 +67,9 @@ def require_organization_admin(
     ),
 ):
     """
-    Require organization admin privileges.
+    Require organization administrator privileges.
+
+    Organization owners are also administrators.
     """
 
     if membership.role.name not in (
@@ -88,7 +90,7 @@ def require_organization_member(
     ),
 ):
     """
-    Require any organization membership.
+    Require any membership in the organization.
     """
 
     return membership

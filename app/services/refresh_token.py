@@ -3,23 +3,24 @@ import uuid
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+
 from app.core.security import (
     generate_refresh_token,
     hash_refresh_token,
-    verify_refresh_token,
 )
 
 from app.repositories.refresh_token import (
     create_refresh_token as create_refresh_token_repository,
     get_refresh_token,
+    get_refresh_token_for_update,
+    rotate_refresh_token as rotate_refresh_token_repository,
     revoke_refresh_token as revoke_refresh_token_repository,
     revoke_all_user_tokens as revoke_all_user_tokens_repository,
+    revoke_all_user_tokens_without_commit,
 )
 
 from app.models.user import User
-
-
-REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 
 def create_user_refresh_token(
@@ -39,7 +40,7 @@ def create_user_refresh_token(
     )
 
     expires_at = datetime.now(timezone.utc) + timedelta(
-        days=REFRESH_TOKEN_EXPIRE_DAYS,
+        days=settings.REFRESH_TOKEN_EXPIRE_DAYS,
     )
 
     create_refresh_token_repository(
@@ -83,6 +84,76 @@ def validate_refresh_token(
     return stored_token.user
 
 
+def rotate_user_refresh_token(
+    db: Session,
+    refresh_token: str,
+):
+    """
+    Rotate a refresh token.
+
+    The supplied refresh token is revoked and replaced with
+    a newly generated refresh token.
+
+    If a previously revoked refresh token is presented again,
+    all active refresh tokens belonging to that user are revoked.
+    """
+
+    token_hash = hash_refresh_token(
+        refresh_token,
+    )
+
+    stored_token = get_refresh_token_for_update(
+        db,
+        token_hash,
+    )
+
+    if not stored_token:
+        return None
+
+    # Reuse detection.
+    #
+    # A previously revoked token should never be presented
+    # again during normal operation. If it is, revoke every
+    # remaining active token belonging to the user.
+    if stored_token.revoked_at:
+        revoke_all_user_tokens_without_commit(
+            db,
+            stored_token.user_id,
+        )
+
+        db.commit()
+
+        return None
+
+    # Reject expired tokens.
+    if stored_token.expires_at < datetime.now(timezone.utc):
+        return None
+
+    # Generate replacement refresh token.
+    new_raw_token = generate_refresh_token()
+
+    new_token_hash = hash_refresh_token(
+        new_raw_token,
+    )
+
+    new_expires_at = (
+        datetime.now(timezone.utc)
+        + timedelta(
+            days=settings.REFRESH_TOKEN_EXPIRE_DAYS,
+        )
+    )
+
+    # Revoke the old token and create the new token.
+    rotate_refresh_token_repository(
+        db=db,
+        refresh_token=stored_token,
+        new_token_hash=new_token_hash,
+        new_expires_at=new_expires_at,
+    )
+
+    return stored_token.user, new_raw_token
+
+
 def revoke_refresh_token(
     db: Session,
     refresh_token: str,
@@ -101,6 +172,9 @@ def revoke_refresh_token(
     )
 
     if not stored_token:
+        return False
+
+    if stored_token.revoked_at:
         return False
 
     revoke_refresh_token_repository(

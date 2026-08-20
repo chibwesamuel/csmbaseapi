@@ -12,10 +12,10 @@ from strawberry.fastapi import GraphQLRouter
 
 from app.core.config import settings
 
-from app.core.exceptions import EmailAlreadyRegistered
+from app.core.exceptions import AppException
 
 from app.core.exception_handlers import (
-    email_exists_exception_handler,
+    app_exception_handler,
     http_exception_handler,
     validation_exception_handler,
     global_exception_handler,
@@ -180,8 +180,8 @@ app.add_middleware(
 # ==========================================================
 
 app.add_exception_handler(
-    EmailAlreadyRegistered,
-    email_exists_exception_handler,
+    AppException,
+    app_exception_handler,
 )
 
 

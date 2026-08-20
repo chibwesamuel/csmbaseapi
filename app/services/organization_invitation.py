@@ -20,6 +20,7 @@ from app.repositories.organization import (
 
 from app.repositories.organization_member import (
     get_member,
+    create_member,
 )
 
 from app.repositories.organization_invitation import (
@@ -201,15 +202,12 @@ def accept_invitation(
         )
 
 
-    membership = OrganizationMember(
-        organization_id=invitation.organization_id,
-        user_id=user_id,
-        role_id=role.id,
+    membership = create_member(
+        db,
+        invitation.organization_id,
+        user_id,
+        invitation.role_id,
     )
-
-
-    db.add(membership)
-
 
     invitation.status = InvitationStatus.ACCEPTED
 
@@ -217,11 +215,8 @@ def accept_invitation(
         timezone.utc
     )
 
-
     db.commit()
-
-    db.refresh(membership)
-
+    db.refresh(invitation)
 
     return membership
 
