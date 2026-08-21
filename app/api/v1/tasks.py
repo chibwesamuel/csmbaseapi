@@ -11,10 +11,14 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 
-from app.dependencies.organization import get_current_project
+from app.dependencies.organization import (
+    get_current_project,
+    get_current_task,
+)
 from app.dependencies.permissions import require_permission
 
 from app.models.project import Project
+from app.models.task import Task
 from app.models.user import User
 
 from app.schemas.task import (
@@ -34,7 +38,11 @@ from app.services.task import (
 
 
 router = APIRouter(
-    prefix="/organizations/{organization_id}/projects/{project_id}/tasks",
+    prefix=(
+        "/organizations/"
+        "{organization_id}/projects/"
+        "{project_id}/tasks"
+    ),
     tags=["Tasks"],
 )
 
@@ -71,7 +79,7 @@ def create_task_endpoint(
     try:
         return create_new_task(
             db,
-            project_id,
+            current_project,
             current_user.id,
             data,
         )
@@ -111,7 +119,7 @@ def list_project_tasks(
 
     return get_tasks(
         db,
-        project_id,
+        current_project.id,
         skip,
         limit,
         status,
@@ -128,9 +136,8 @@ def get_task_endpoint(
     organization_id: UUID,
     project_id: UUID,
     task_id: UUID,
-    db: Session = Depends(get_db),
-    current_project: Project = Depends(
-        get_current_project
+    task: Task = Depends(
+        get_current_task
     ),
     current_user: User = Depends(
         require_permission(
@@ -140,21 +147,15 @@ def get_task_endpoint(
 ):
     """
     Retrieve a task from the current project.
+
+    The get_current_task dependency ensures that:
+    - the organization exists,
+    - the current user belongs to the organization,
+    - the project exists within the organization,
+    - the task exists within the project.
     """
 
-    task = get_single_task(
-        db,
-        project_id,
-        task_id,
-    )
-
-    if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found",
-        )
-
-    return task
+    return get_single_task(task)
 
 
 @router.patch(
@@ -167,8 +168,8 @@ def update_task_endpoint(
     task_id: UUID,
     data: TaskUpdate,
     db: Session = Depends(get_db),
-    current_project: Project = Depends(
-        get_current_project
+    task: Task = Depends(
+        get_current_task
     ),
     current_user: User = Depends(
         require_permission(
@@ -178,24 +179,19 @@ def update_task_endpoint(
 ):
     """
     Update a task belonging to the current project.
+
+    The get_current_task dependency validates
+    the task before the service is called.
     """
 
     try:
         return edit_task(
             db,
-            project_id,
-            task_id,
+            task,
             data,
         )
 
     except ValueError as error:
-
-        if str(error) == "Task not found":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(error),
-            )
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),
@@ -209,10 +205,10 @@ def delete_task_endpoint(
     organization_id: UUID,
     project_id: UUID,
     task_id: UUID,
-    db: Session = Depends(get_db),
-    current_project: Project = Depends(
-        get_current_project
+    task: Task = Depends(
+        get_current_task
     ),
+    db: Session = Depends(get_db),
     current_user: User = Depends(
         require_permission(
             "tasks.delete"
@@ -221,29 +217,16 @@ def delete_task_endpoint(
 ):
     """
     Delete a task belonging to the current project.
+
+    The get_current_task dependency validates
+    the task before deletion.
     """
 
-    try:
+    remove_task(
+        db,
+        task,
+    )
 
-        remove_task(
-            db,
-            project_id,
-            task_id,
-        )
-
-        return {
-            "message": "Task deleted successfully"
-        }
-
-    except ValueError as error:
-
-        if str(error) == "Task not found":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(error),
-            )
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(error),
-        )
+    return {
+        "message": "Task deleted successfully"
+    }

@@ -11,8 +11,15 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 
-from app.dependencies.permissions import require_permission
+from app.dependencies.organization import (
+    get_current_task,
+)
 
+from app.dependencies.permissions import (
+    require_permission,
+)
+
+from app.models.task import Task
 from app.models.user import User
 
 from app.schemas.task_attachment import (
@@ -51,6 +58,7 @@ def create_task_attachment(
     task_id: UUID,
     data: TaskAttachmentCreate,
     db: Session = Depends(get_db),
+    task: Task = Depends(get_current_task),
     current_user: User = Depends(
         require_permission(
             "projects.members.manage"
@@ -59,12 +67,20 @@ def create_task_attachment(
 ):
     """
     Create a task attachment.
+
+    The current task dependency ensures that:
+    - the organization exists,
+    - the current user belongs to the organization,
+    - the project exists,
+    - the project belongs to the organization,
+    - the task exists,
+    - the task belongs to the project.
     """
 
     try:
         return create_new_attachment(
             db,
-            task_id,
+            task,
             current_user.id,
             data,
         )
@@ -87,6 +103,7 @@ def list_task_attachments(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
+    task: Task = Depends(get_current_task),
     current_user: User = Depends(
         require_permission(
             "projects.view"
@@ -94,12 +111,12 @@ def list_task_attachments(
     ),
 ):
     """
-    List task attachments.
+    List attachments belonging to the current task.
     """
 
     return get_task_attachments(
         db,
-        task_id,
+        task.id,
         skip,
         limit,
     )
@@ -115,6 +132,7 @@ def get_attachment(
     task_id: UUID,
     attachment_id: UUID,
     db: Session = Depends(get_db),
+    task: Task = Depends(get_current_task),
     current_user: User = Depends(
         require_permission(
             "projects.view"
@@ -123,6 +141,10 @@ def get_attachment(
 ):
     """
     Retrieve a task attachment.
+
+    The current task dependency ensures that the
+    requested task belongs to the requested project
+    and organization.
     """
 
     attachment = get_single_attachment(
@@ -131,6 +153,12 @@ def get_attachment(
     )
 
     if not attachment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attachment not found",
+        )
+
+    if attachment.task_id != task.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Attachment not found",
@@ -148,6 +176,7 @@ def delete_attachment(
     task_id: UUID,
     attachment_id: UUID,
     db: Session = Depends(get_db),
+    task: Task = Depends(get_current_task),
     current_user: User = Depends(
         require_permission(
             "projects.members.manage"
@@ -156,7 +185,26 @@ def delete_attachment(
 ):
     """
     Delete a task attachment.
+
+    The attachment must belong to the current task.
     """
+
+    attachment = get_single_attachment(
+        db,
+        attachment_id,
+    )
+
+    if not attachment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attachment not found",
+        )
+
+    if attachment.task_id != task.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attachment not found",
+        )
 
     try:
         remove_attachment(

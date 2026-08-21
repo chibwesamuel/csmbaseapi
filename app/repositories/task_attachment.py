@@ -13,7 +13,7 @@ def create_attachment(
     file_path: str,
     file_type: str | None = None,
     file_size: int | None = None,
-):
+) -> TaskAttachment:
     """
     Create a task attachment.
     """
@@ -34,11 +34,10 @@ def create_attachment(
     return attachment
 
 
-
 def get_attachment(
     db: Session,
     attachment_id: UUID,
-):
+) -> TaskAttachment | None:
     """
     Retrieve a single attachment.
     """
@@ -52,13 +51,12 @@ def get_attachment(
     )
 
 
-
 def list_attachments(
     db: Session,
     task_id: UUID,
     skip: int = 0,
     limit: int = 10,
-):
+) -> tuple[int, list[TaskAttachment]]:
     """
     List attachments belonging to a task.
     """
@@ -74,6 +72,9 @@ def list_attachments(
 
     attachments = (
         query
+        .order_by(
+            TaskAttachment.created_at.desc()
+        )
         .offset(skip)
         .limit(limit)
         .all()
@@ -82,11 +83,10 @@ def list_attachments(
     return total, attachments
 
 
-
 def delete_attachment(
     db: Session,
     attachment: TaskAttachment,
-):
+) -> TaskAttachment:
     """
     Delete an attachment.
     """

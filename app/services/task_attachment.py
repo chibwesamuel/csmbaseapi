@@ -20,26 +20,19 @@ from app.repositories.task_attachment import (
 
 def create_new_attachment(
     db: Session,
-    task_id: UUID,
+    task: Task,
     user_id: UUID,
     data: TaskAttachmentCreate,
 ):
     """
     Create a new task attachment.
+
+    The task has already been validated by the
+    get_current_task dependency.
+
+    The user must also be a member of the
+    project containing the task.
     """
-
-    task = (
-        db.query(Task)
-        .filter(
-            Task.id == task_id,
-        )
-        .first()
-    )
-
-    if not task:
-        raise ValueError(
-            "Task not found"
-        )
 
     membership = (
         db.query(ProjectMember)
@@ -57,7 +50,7 @@ def create_new_attachment(
 
     return create_attachment(
         db,
-        task_id=task_id,
+        task_id=task.id,
         user_id=user_id,
         file_name=data.file_name,
         file_path=data.file_path,
@@ -124,6 +117,8 @@ def remove_attachment(
 ):
     """
     Delete an attachment.
+
+    Users may only delete attachments they uploaded.
     """
 
     attachment = get_attachment(

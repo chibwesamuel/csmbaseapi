@@ -38,7 +38,6 @@ class TaskUpdate(BaseModel):
     assigned_to: UUID | None = None
     status: TaskStatusType | None = None
     priority: TaskPriorityType | None = None
-    assigned_to: UUID | None = None
     due_date: datetime | None = None
 
 
@@ -79,7 +78,6 @@ class TaskResponse(BaseModel):
 
 
 class PaginatedTasksResponse(BaseModel):
-
     total: int
     skip: int
     limit: int
