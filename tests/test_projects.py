@@ -320,3 +320,134 @@ def test_get_missing_project(
     assert response.json()["message"] == (
         "Project not found"
     )
+
+def test_update_project_slug(
+    client,
+    admin_headers,
+):
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    created = client.post(
+        f"/api/v1/organizations/{organization['id']}/projects",
+        json={
+            "name": "Slug Project",
+            "slug": "old-slug",
+        },
+        headers=admin_headers,
+    )
+
+    assert created.status_code == 201
+
+    project = created.json()
+
+    response = client.patch(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}"
+        ),
+        json={
+            "slug": "new-slug",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["slug"] == "new-slug"
+
+
+def test_update_project_duplicate_slug(
+    client,
+    admin_headers,
+):
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    first = client.post(
+        f"/api/v1/organizations/{organization['id']}/projects",
+        json={
+            "name": "First Project",
+            "slug": "first-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert first.status_code == 201
+
+    second = client.post(
+        f"/api/v1/organizations/{organization['id']}/projects",
+        json={
+            "name": "Second Project",
+            "slug": "second-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert second.status_code == 201
+
+    project = second.json()
+
+    response = client.patch(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}"
+        ),
+        json={
+            "slug": "first-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 400
+
+
+def test_project_invalid_pagination(
+    client,
+    admin_headers,
+):
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    negative_skip = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects"
+            "?skip=-1"
+        ),
+        headers=admin_headers,
+    )
+
+    assert negative_skip.status_code == 422
+
+    zero_limit = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects"
+            "?limit=0"
+        ),
+        headers=admin_headers,
+    )
+
+    assert zero_limit.status_code == 422
+
+    excessive_limit = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects"
+            "?limit=101"
+        ),
+        headers=admin_headers,
+    )
+
+    assert excessive_limit.status_code == 422

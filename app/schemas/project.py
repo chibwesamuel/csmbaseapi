@@ -29,6 +29,7 @@ class ProjectUpdate(BaseModel):
     """
 
     name: str | None = None
+    slug: str | None = None
     description: str | None = None
     status: ProjectStatus | None = None
 

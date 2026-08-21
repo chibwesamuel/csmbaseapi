@@ -103,7 +103,7 @@ def get_project_by_slug(
     """
 
     return (
-        db.query(Project)
+        project_query(db)
         .filter(
             Project.organization_id == organization_id,
             Project.slug == slug,
