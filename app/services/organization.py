@@ -27,6 +27,10 @@ from app.schemas.organization import (
     PaginatedOrganizationsResponse,
 )
 
+from app.services.organization_cache import (
+    invalidate_organization_cache,
+)
+
 
 def get_role_by_name(
     db: Session,
@@ -158,11 +162,17 @@ def update_existing_organization(
     if not organization:
         return None
 
-    return update_repository(
+    organization = update_repository(
         db,
         organization,
         organization_data,
     )
+
+    invalidate_organization_cache(
+        organization_id
+    )
+
+    return organization
 
 
 def delete_existing_organization(
@@ -177,10 +187,16 @@ def delete_existing_organization(
     if not organization:
         return False
 
-    return delete_repository(
+    deleted = delete_repository(
         db,
         organization,
     )
+
+    invalidate_organization_cache(
+        organization_id
+    )
+
+    return deleted
 
 
 def get_my_organizations(
