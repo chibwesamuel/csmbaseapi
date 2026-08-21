@@ -4,12 +4,16 @@ from sqlalchemy.orm import Session
 
 from app.models.project import Project
 from app.models.user import User
+from app.models.task import Task
 from app.models.project_member import ProjectMember
-from app.schemas.task import TaskCreate, TaskUpdate
+
+from app.schemas.task import (
+    TaskCreate,
+    TaskUpdate,
+)
 
 from app.repositories.task import (
     create_task,
-    get_task,
     get_task_by_title,
     list_tasks,
     update_task,
@@ -19,26 +23,23 @@ from app.repositories.task import (
 
 def create_new_task(
     db: Session,
-    project_id: UUID,
+    project: Project,
     created_by: UUID,
     data: TaskCreate,
 ):
     """
     Create a new task.
+
+    The project has already been validated by the
+    get_current_project dependency.
+
+    If a user is assigned to the task, that user
+    must be a member of the project.
     """
-
-    project = (
-        db.query(Project)
-        .filter(Project.id == project_id)
-        .first()
-    )
-
-    if not project:
-        raise ValueError("Project not found")
 
     existing = get_task_by_title(
         db,
-        project_id,
+        project.id,
         data.title,
     )
 
@@ -51,7 +52,9 @@ def create_new_task(
 
         user = (
             db.query(User)
-            .filter(User.id == data.assigned_to)
+            .filter(
+                User.id == data.assigned_to
+            )
             .first()
         )
 
@@ -63,7 +66,7 @@ def create_new_task(
         membership = (
             db.query(ProjectMember)
             .filter(
-                ProjectMember.project_id == project_id,
+                ProjectMember.project_id == project.id,
                 ProjectMember.user_id == data.assigned_to,
             )
             .first()
@@ -76,7 +79,7 @@ def create_new_task(
 
     return create_task(
         db,
-        project_id=project_id,
+        project_id=project.id,
         created_by=created_by,
         assigned_to=data.assigned_to,
         title=data.title,
@@ -97,7 +100,10 @@ def get_tasks(
     assigned_to: UUID | None = None,
 ):
     """
-    List tasks.
+    List tasks belonging to a project.
+
+    The project has already been validated by the
+    get_current_project dependency.
     """
 
     total, tasks = list_tasks(
@@ -119,39 +125,35 @@ def get_tasks(
 
 
 def get_single_task(
-    db: Session,
-    project_id: UUID,
-    task_id: UUID,
-):
+    task: Task,
+) -> Task:
     """
-    Retrieve one task.
+    Return the already validated task.
+
+    The task has already been validated by the
+    get_current_task dependency.
     """
 
-    return get_task(
-        db,
-        project_id,
-        task_id,
-    )
+    return task
 
 
 def edit_task(
     db: Session,
-    project_id: UUID,
-    task_id: UUID,
+    task: Task,
     data: TaskUpdate,
 ):
     """
     Update a task.
+
+    The task has already been validated by the
+    get_current_task dependency.
+
+    If the title changes, the new title must remain
+    unique within the project.
+
+    If a user is assigned to the task, that user
+    must be a member of the project.
     """
-
-    task = get_task(
-        db,
-        project_id,
-        task_id,
-    )
-
-    if not task:
-        raise ValueError("Task not found")
 
     if (
         data.title is not None
@@ -159,7 +161,7 @@ def edit_task(
     ):
         duplicate = get_task_by_title(
             db,
-            project_id,
+            task.project_id,
             data.title,
         )
 
@@ -172,7 +174,9 @@ def edit_task(
 
         user = (
             db.query(User)
-            .filter(User.id == data.assigned_to)
+            .filter(
+                User.id == data.assigned_to
+            )
             .first()
         )
 
@@ -184,7 +188,7 @@ def edit_task(
         membership = (
             db.query(ProjectMember)
             .filter(
-                ProjectMember.project_id == project_id,
+                ProjectMember.project_id == task.project_id,
                 ProjectMember.user_id == data.assigned_to,
             )
             .first()
@@ -209,21 +213,14 @@ def edit_task(
 
 def remove_task(
     db: Session,
-    project_id: UUID,
-    task_id: UUID,
+    task: Task,
 ):
     """
     Delete a task.
+
+    The task has already been validated by the
+    get_current_task dependency.
     """
-
-    task = get_task(
-        db,
-        project_id,
-        task_id,
-    )
-
-    if not task:
-        raise ValueError("Task not found")
 
     return delete_task(
         db,

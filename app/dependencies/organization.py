@@ -10,12 +10,15 @@ from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 
+from app.repositories.task import get_task
+
 from app.dependencies.auth import get_current_user
 
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 from app.models.project import Project
+from app.models.task import Task
 
 
 def get_current_organization(
@@ -96,3 +99,36 @@ def get_current_project(
         )
 
     return project
+
+
+def get_current_task(
+    task_id: UUID,
+    project: Project = Depends(
+        get_current_project
+    ),
+    db: Session = Depends(get_db),
+) -> Task:
+    """
+    Retrieve the requested task and verify that
+    it belongs to the current project.
+
+    The dependency chain ensures that:
+    1. The organization exists.
+    2. The current user belongs to the organization.
+    3. The project exists within that organization.
+    4. The task exists within that project.
+    """
+
+    task = get_task(
+        db,
+        project.id,
+        task_id,
+    )
+
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    return task

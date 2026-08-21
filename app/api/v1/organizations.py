@@ -41,6 +41,11 @@ from app.services.organization import (
     get_my_organizations,
 )
 
+from app.services.organization_cache import (
+    cache_organization,
+    get_cached_organization,
+)
+
 
 router = APIRouter(
     prefix="/organizations",
@@ -129,7 +134,17 @@ def read_organization(
 
     The authenticated user must be a member
     of the requested organization.
+
+    Authorization is always verified before
+    consulting the response cache.
     """
+
+    cached = get_cached_organization(
+        organization_id
+    )
+
+    if cached is not None:
+        return cached
 
     organization = get_organization(
         db,
@@ -142,7 +157,20 @@ def read_organization(
             detail="Organization not found",
         )
 
-    return organization
+    response = OrganizationResponse.model_validate(
+        organization
+    )
+
+    data = response.model_dump(
+        mode="json"
+    )
+
+    cache_organization(
+        organization_id,
+        data,
+    )
+
+    return response
 
 
 # =========================================================

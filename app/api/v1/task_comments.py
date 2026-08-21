@@ -12,10 +12,10 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 
 from app.dependencies.permissions import require_permission
-from app.dependencies.organization import get_current_project
+from app.dependencies.organization import get_current_task
 
 from app.models.user import User
-from app.models.project import Project
+from app.models.task import Task
 
 from app.schemas.task_comment import (
     TaskCommentCreate,
@@ -54,7 +54,7 @@ def create_comment_endpoint(
     task_id: UUID,
     data: TaskCommentCreate,
     db: Session = Depends(get_db),
-    project: Project = Depends(get_current_project),
+    task: Task = Depends(get_current_task),
     current_user: User = Depends(
         require_permission(
             "tasks.update"
@@ -64,16 +64,17 @@ def create_comment_endpoint(
     """
     Create a task comment.
 
-    The project must belong to the requested
-    organization, and the task must belong
-    to the requested project.
+    The dependency chain ensures that:
+    - the organization exists,
+    - the current user belongs to the organization,
+    - the project exists within the organization,
+    - the task exists within the project.
     """
 
     try:
         return create_new_comment(
             db,
-            project.id,
-            task_id,
+            task,
             current_user.id,
             data,
         )
@@ -96,7 +97,7 @@ def list_comments_endpoint(
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
-    project: Project = Depends(get_current_project),
+    task: Task = Depends(get_current_task),
     current_user: User = Depends(
         require_permission(
             "tasks.view"
@@ -106,16 +107,17 @@ def list_comments_endpoint(
     """
     List comments for a task.
 
-    The project must belong to the requested
-    organization, and the task must belong
-    to the requested project.
+    The dependency chain ensures that:
+    - the organization exists,
+    - the current user belongs to the organization,
+    - the project exists within the organization,
+    - the task exists within the project.
     """
 
     try:
         return get_task_comments(
             db,
-            project.id,
-            task_id,
+            task,
             skip,
             limit,
         )
@@ -138,7 +140,7 @@ def update_comment_endpoint(
     comment_id: UUID,
     data: TaskCommentUpdate,
     db: Session = Depends(get_db),
-    project: Project = Depends(get_current_project),
+    task: Task = Depends(get_current_task),
     current_user: User = Depends(
         require_permission(
             "tasks.update"
@@ -148,14 +150,14 @@ def update_comment_endpoint(
     """
     Update a task comment.
 
-    A user may only update their own comment.
+    The authenticated user may only update
+    their own comment.
     """
 
     try:
         return edit_comment(
             db,
-            project.id,
-            task_id,
+            task,
             comment_id,
             current_user.id,
             data,
@@ -184,7 +186,7 @@ def delete_comment_endpoint(
     task_id: UUID,
     comment_id: UUID,
     db: Session = Depends(get_db),
-    project: Project = Depends(get_current_project),
+    task: Task = Depends(get_current_task),
     current_user: User = Depends(
         require_permission(
             "tasks.update"
@@ -194,14 +196,14 @@ def delete_comment_endpoint(
     """
     Delete a task comment.
 
-    A user may only delete their own comment.
+    The authenticated user may only delete
+    their own comment.
     """
 
     try:
         remove_comment(
             db,
-            project.id,
-            task_id,
+            task,
             comment_id,
             current_user.id,
         )

@@ -4,6 +4,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
     status,
 )
 
@@ -51,8 +52,15 @@ router = APIRouter(
 )
 def get_projects(
     organization_id: UUID,
-    skip: int = 0,
-    limit: int = 10,
+    skip: int = Query(
+        default=0,
+        ge=0,
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+    ),
     organization: Organization = Depends(
         get_current_organization
     ),
