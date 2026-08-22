@@ -18,6 +18,9 @@ from app.repositories.project import (
     delete_project as repository_delete_project,
 )
 
+from app.services.project_cache import (
+    invalidate_project_cache,
+)
 
 def create_project(
     db: Session,
@@ -132,11 +135,18 @@ def update_project(
                 "Project slug already exists in this organization"
             )
 
-    return repository_update_project(
+    project = repository_update_project(
         db,
         project,
         updates,
     )
+
+    invalidate_project_cache(
+        project.organization_id,
+        project.id,
+    )
+
+    return project
 
 
 def delete_project(
@@ -150,7 +160,14 @@ def delete_project(
     authorization dependency before reaching this service.
     """
 
-    return repository_delete_project(
+    deleted = repository_delete_project(
         db,
         project,
     )
+
+    invalidate_project_cache(
+        project.organization_id,
+        project.id,
+    )
+
+    return deleted
