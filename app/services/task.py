@@ -20,6 +20,10 @@ from app.repositories.task import (
     delete_task,
 )
 
+from app.services.task_cache import (
+    invalidate_task_cache,
+)
+
 
 def create_new_task(
     db: Session,
@@ -139,6 +143,7 @@ def get_single_task(
 
 def edit_task(
     db: Session,
+    project: Project,
     task: Task,
     data: TaskUpdate,
 ):
@@ -153,6 +158,9 @@ def edit_task(
 
     If a user is assigned to the task, that user
     must be a member of the project.
+
+    The project's cached task response is invalidated
+    after a successful update.
     """
 
     if (
@@ -199,7 +207,7 @@ def edit_task(
                 "Assigned user is not a project member"
             )
 
-    return update_task(
+    task = update_task(
         db,
         task,
         title=data.title,
@@ -210,9 +218,18 @@ def edit_task(
         due_date=data.due_date,
     )
 
+    invalidate_task_cache(
+        project.organization_id,
+        project.id,
+        task.id,
+    )
+
+    return task
+
 
 def remove_task(
     db: Session,
+    project: Project,
     task: Task,
 ):
     """
@@ -220,9 +237,20 @@ def remove_task(
 
     The task has already been validated by the
     get_current_task dependency.
+
+    The project's cached task response is invalidated
+    after a successful deletion.
     """
 
-    return delete_task(
+    deleted = delete_task(
         db,
         task,
     )
+
+    invalidate_task_cache(
+        project.organization_id,
+        project.id,
+        task.id,
+    )
+
+    return deleted

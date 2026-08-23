@@ -4,6 +4,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
     status,
 )
 
@@ -36,6 +37,10 @@ from app.services.task import (
     remove_task,
 )
 
+from app.services.task_cache import (
+    cache_task,
+    get_cached_task,
+)
 
 router = APIRouter(
     prefix=(
@@ -98,8 +103,15 @@ def create_task_endpoint(
 def list_project_tasks(
     organization_id: UUID,
     project_id: UUID,
-    skip: int = 0,
-    limit: int = 10,
+    skip: int = Query(
+        default=0,
+        ge=0,
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+    ),
     status: str | None = None,
     priority: str | None = None,
     assigned_to: UUID | None = None,
@@ -136,6 +148,9 @@ def get_task_endpoint(
     organization_id: UUID,
     project_id: UUID,
     task_id: UUID,
+    current_project: Project = Depends(
+        get_current_project
+    ),
     task: Task = Depends(
         get_current_task
     ),
@@ -148,14 +163,35 @@ def get_task_endpoint(
     """
     Retrieve a task from the current project.
 
-    The get_current_task dependency ensures that:
-    - the organization exists,
-    - the current user belongs to the organization,
-    - the project exists within the organization,
-    - the task exists within the project.
+    Authorization and task validation are completed
+    before consulting the response cache.
     """
 
-    return get_single_task(task)
+    cached = get_cached_task(
+        current_project.organization_id,
+        current_project.id,
+        task_id,
+    )
+
+    if cached is not None:
+        return cached
+
+    response = TaskResponse.model_validate(
+        task
+    )
+
+    data = response.model_dump(
+        mode="json"
+    )
+
+    cache_task(
+        current_project.organization_id,
+        current_project.id,
+        task_id,
+        data,
+    )
+
+    return response
 
 
 @router.patch(
@@ -168,6 +204,9 @@ def update_task_endpoint(
     task_id: UUID,
     data: TaskUpdate,
     db: Session = Depends(get_db),
+    current_project: Project = Depends(
+        get_current_project
+    ),
     task: Task = Depends(
         get_current_task
     ),
@@ -187,6 +226,7 @@ def update_task_endpoint(
     try:
         return edit_task(
             db,
+            current_project,
             task,
             data,
         )
@@ -205,6 +245,9 @@ def delete_task_endpoint(
     organization_id: UUID,
     project_id: UUID,
     task_id: UUID,
+    current_project: Project = Depends(
+        get_current_project
+    ),
     task: Task = Depends(
         get_current_task
     ),
@@ -224,6 +267,7 @@ def delete_task_endpoint(
 
     remove_task(
         db,
+        current_project,
         task,
     )
 

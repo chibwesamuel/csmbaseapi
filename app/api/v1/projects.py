@@ -21,6 +21,11 @@ from app.dependencies.permissions import (
     require_permission,
 )
 
+from app.services.project_cache import (
+    cache_project,
+    get_cached_project,
+)
+
 from app.models.organization import Organization
 from app.models.project import Project
 from app.models.user import User
@@ -139,9 +144,34 @@ def get_single_project(
 ):
     """
     Retrieve a project.
+
+    Authorization is always verified before
+    consulting the response cache.
     """
 
-    return project
+    cached = get_cached_project(
+        organization_id,
+        project_id,
+    )
+
+    if cached is not None:
+        return cached
+
+    response = ProjectResponse.model_validate(
+        project
+    )
+
+    data = response.model_dump(
+        mode="json"
+    )
+
+    cache_project(
+        organization_id,
+        project_id,
+        data,
+    )
+
+    return response
 
 
 @router.patch(
