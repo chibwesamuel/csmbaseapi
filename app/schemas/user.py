@@ -24,6 +24,14 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class PasswordChange(BaseModel):
+    """
+    Data required to change the authenticated user's password.
+    """
+
+    current_password: str
+    new_password: str
+
 
 class UserUpdate(BaseModel):
     """

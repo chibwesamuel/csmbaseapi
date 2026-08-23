@@ -12,6 +12,11 @@ from app.schemas.user import (
     UserResponse,
     UserLogin,
     Token,
+    PasswordChange,
+)
+
+from app.services.password import (
+    change_user_password,
 )
 
 from app.schemas.refresh_token import (
@@ -195,6 +200,45 @@ def refresh_access_token(
         token_type="bearer",
     )
 
+@router.post(
+    "/change-password",
+    summary="Change current user's password",
+    description=(
+        "Change the password of the currently authenticated "
+        "user. The current password must be supplied correctly."
+    ),
+    responses={
+        200: {
+            "description": "Password changed successfully",
+        },
+        400: {
+            "description": (
+                "The new password is the same as the current password"
+            ),
+        },
+        401: {
+            "description": "Current password is incorrect",
+        },
+    },
+)
+def change_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Change the authenticated user's password.
+    """
+
+    change_user_password(
+        db=db,
+        user=current_user,
+        password_data=password_data,
+    )
+
+    return {
+        "message": "Password changed successfully",
+    }
 
 @router.get(
     "/me",
