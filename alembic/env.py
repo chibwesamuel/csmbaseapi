@@ -41,6 +41,7 @@ from app.models.user_role import UserRole
 from app.models.organization import Organization
 from app.models.organization_member import OrganizationMember
 from app.models.refresh_token import RefreshToken
+from app.models.password_reset_token import PasswordResetToken
 from app.models.organization_invitation import OrganizationInvitation
 from app.models.project import Project
 from app.models.notification import Notification

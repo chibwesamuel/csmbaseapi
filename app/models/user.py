@@ -109,6 +109,12 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    password_reset_tokens = relationship(
+        "PasswordResetToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
     sent_invitations = relationship(
         "OrganizationInvitation",
         foreign_keys="OrganizationInvitation.invited_by",

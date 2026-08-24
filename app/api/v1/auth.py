@@ -12,6 +12,21 @@ from app.schemas.user import (
     UserResponse,
     UserLogin,
     Token,
+    PasswordChange,
+)
+
+from app.schemas.password_reset import (
+    PasswordResetRequest,
+    PasswordResetConfirm,
+)
+
+from app.services.password import (
+    change_user_password,
+)
+
+from app.services.password_reset import (
+    request_password_reset,
+    reset_password,
 )
 
 from app.schemas.refresh_token import (
@@ -195,6 +210,135 @@ def refresh_access_token(
         token_type="bearer",
     )
 
+@router.post(
+    "/change-password",
+    summary="Change current user's password",
+    description=(
+        "Change the password of the currently authenticated "
+        "user. The current password must be supplied correctly."
+    ),
+    responses={
+        200: {
+            "description": "Password changed successfully",
+        },
+        400: {
+            "description": (
+                "The new password is the same as the current password"
+            ),
+        },
+        401: {
+            "description": "Current password is incorrect",
+        },
+    },
+)
+def change_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Change the authenticated user's password.
+    """
+
+    change_user_password(
+        db=db,
+        user=current_user,
+        password_data=password_data,
+    )
+
+    return {
+        "message": "Password changed successfully",
+    }
+
+@router.post(
+    "/forgot-password",
+    summary="Request a password reset",
+    description=(
+        "Request a password reset using an email address. "
+        "The response does not reveal whether the email "
+        "belongs to an existing account."
+    ),
+    responses={
+        200: {
+            "description": "Password reset request processed",
+        },
+    },
+)
+def forgot_password(
+    request: PasswordResetRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Request a password reset.
+
+    The API intentionally returns the same response whether
+    or not the supplied email belongs to an existing user.
+    """
+
+    reset_token = request_password_reset(
+        db=db,
+        email=request.email,
+    )
+
+    response = {
+        "message": (
+            "If an account exists for this email, "
+            "a password reset link has been generated."
+        ),
+    }
+
+    # Temporary development behavior.
+    #
+    # Until an email delivery service is implemented, expose
+    # the generated token so the reset flow can be tested.
+    if reset_token:
+        response["reset_token"] = reset_token
+
+    return response
+
+
+@router.post(
+    "/reset-password",
+    summary="Reset password",
+    description=(
+        "Reset a user's password using a valid password "
+        "reset token."
+    ),
+    responses={
+        200: {
+            "description": "Password reset successfully",
+        },
+        400: {
+            "description": (
+                "Invalid, expired, used, or revoked "
+                "password reset token"
+            ),
+        },
+    },
+)
+def reset_password_endpoint(
+    request: PasswordResetConfirm,
+    db: Session = Depends(get_db),
+):
+    """
+    Reset a user's password using a password reset token.
+    """
+
+    success = reset_password(
+        db=db,
+        raw_token=request.token,
+        new_password=request.new_password,
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset token",
+        )
+
+    return {
+        "message": "Password reset successfully",
+    }
 
 @router.get(
     "/me",

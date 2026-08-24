@@ -120,3 +120,28 @@ def verify_refresh_token(
         hash_refresh_token(refresh_token)
         == stored_hash
     )
+
+def generate_password_reset_token() -> str:
+    """
+    Generate a cryptographically secure password reset token.
+
+    The raw token is intended to be sent to the user.
+    Only its hash should be stored in the database.
+    """
+
+    return secrets.token_urlsafe(64)
+
+
+def hash_password_reset_token(
+    reset_token: str,
+) -> str:
+    """
+    Hash a password reset token before storing it.
+
+    SHA-256 is appropriate here because the reset token
+    has high entropy and is not a user-chosen secret.
+    """
+
+    return hashlib.sha256(
+        reset_token.encode("utf-8")
+    ).hexdigest()
