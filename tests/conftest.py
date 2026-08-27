@@ -1,4 +1,5 @@
 import uuid
+import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,12 +21,96 @@ from app.core.security import hash_password
 from tests.seed import (
     seed_admin_role,
     seed_organization_roles,
+    seed_permissions,
 )
 
 from tests.factories import (
     user_payload,
     admin_payload,
 )
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from app.database.session import get_db
+
+
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql://pulseuser:supersecretpassword@localhost:5433/csmbaseapi_test",
+)
+
+test_engine = create_engine(
+    TEST_DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+)
+
+TestSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=test_engine,
+)
+
+
+# ---------------------------------------------------------
+# Test Database Isolation
+# ---------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def clean_test_database():
+    """
+    Reset application data before every test.
+
+    The application and repositories intentionally commit
+    transactions, so transaction rollback cannot reliably
+    isolate tests.
+
+    After clearing the database, restore the application's
+    required seed data so tests start from a valid baseline.
+    """
+
+    tables = [
+        "task_attachments",
+        "task_comments",
+        "notifications",
+        "tasks",
+        "project_members",
+        "projects",
+        "organization_invitations",
+        "organization_members",
+        "organizations",
+        "email_verification_tokens",
+        "password_reset_tokens",
+        "refresh_tokens",
+        "user_roles",
+        "role_permissions",
+        "users",
+        "roles",
+        "permissions",
+    ]
+
+    with test_engine.begin() as connection:
+        connection.execute(
+            text(
+                "TRUNCATE TABLE "
+                + ", ".join(tables)
+                + " RESTART IDENTITY CASCADE"
+            )
+        )
+
+    # -----------------------------------------------------
+    # Restore required application seed data
+    # -----------------------------------------------------
+
+    db = TestSessionLocal()
+
+    try:
+        seed_admin_role(db)
+        seed_organization_roles(db)
+    finally:
+        db.close()
+
+    yield
 
 
 # ---------------------------------------------------------
@@ -34,7 +119,22 @@ from tests.factories import (
 
 @pytest.fixture(scope="session")
 def client():
-    return TestClient(app)
+
+    def override_get_db():
+        db = TestSessionLocal()
+
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    client = TestClient(app)
+
+    yield client
+
+    app.dependency_overrides.clear()
 
 
 # ---------------------------------------------------------
@@ -44,7 +144,7 @@ def client():
 @pytest.fixture
 def db():
 
-    db = SessionLocal()
+    db = TestSessionLocal()
 
     try:
         yield db
@@ -354,10 +454,15 @@ def test_role(db):
 
     return role
 
+
 @pytest.fixture
 def admin_user_id(admin_user):
     return str(admin_user.id)
 
+
+# ---------------------------------------------------------
+# Notification Test User
+# ---------------------------------------------------------
 
 @pytest.fixture
 def notification_user(
@@ -367,6 +472,10 @@ def notification_user(
     """
     Assign notification permissions to a normal test user.
     """
+
+    # The database is cleared before every test, so explicitly
+    # seed the permissions required by notification tests.
+    seed_permissions(db)
 
     permissions = (
         db.query(Permission)
@@ -406,8 +515,12 @@ def notification_user(
 
     return registered_user
 
-@pytest.fixture
 
+# ---------------------------------------------------------
+# Notification Test Headers
+# ---------------------------------------------------------
+
+@pytest.fixture
 def notification_headers(
     client,
     notification_user,
@@ -432,6 +545,11 @@ def notification_headers(
     return {
         "Authorization": f"Bearer {token}"
     }
+
+
+# ---------------------------------------------------------
+# Organization Context
+# ---------------------------------------------------------
 
 @pytest.fixture
 def organization_context(

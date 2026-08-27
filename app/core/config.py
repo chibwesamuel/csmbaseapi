@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+    EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Email
     SMTP_HOST: str = "localhost"
@@ -40,6 +41,7 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
 
     PASSWORD_RESET_URL: str = "http://localhost:3000/reset-password"
+    EMAIL_VERIFICATION_URL: str = "http://localhost:3000/verify-email"
 
     # CORS
     CORS_ORIGINS: str = "*"

@@ -115,6 +115,12 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    email_verification_tokens = relationship(
+        "EmailVerificationToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
     sent_invitations = relationship(
         "OrganizationInvitation",
         foreign_keys="OrganizationInvitation.invited_by",
