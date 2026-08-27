@@ -145,3 +145,28 @@ def hash_password_reset_token(
     return hashlib.sha256(
         reset_token.encode("utf-8")
     ).hexdigest()
+
+def generate_email_verification_token() -> str:
+    """
+    Generate a cryptographically secure email verification token.
+
+    The raw token is intended to be sent to the user.
+    Only its hash should be stored in the database.
+    """
+
+    return secrets.token_urlsafe(64)
+
+
+def hash_email_verification_token(
+    verification_token: str,
+) -> str:
+    """
+    Hash an email verification token before storing it.
+
+    SHA-256 is appropriate here because the verification token
+    has high entropy and is not a user-chosen secret.
+    """
+
+    return hashlib.sha256(
+        verification_token.encode("utf-8")
+    ).hexdigest()

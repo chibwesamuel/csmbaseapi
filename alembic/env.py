@@ -6,7 +6,10 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-
+from app.models.refresh_token import RefreshToken
+from app.models.password_reset_token import PasswordResetToken
+from app.models.email_verification_token import EmailVerificationToken
+from app.models.organization_invitation import OrganizationInvitation
 
 # Add project root to Python path
 sys.path.append(str(Path(__file__).resolve().parents[1]))

@@ -82,3 +82,41 @@ def send_password_reset_email(
         subject=subject,
         body=body,
     )
+
+def send_email_verification_email(
+    to_email: str,
+    verification_token: str,
+) -> None:
+    """
+    Send an email verification email containing a secure
+    verification link.
+    """
+
+    verification_url = (
+        f"{settings.EMAIL_VERIFICATION_URL}"
+        f"?token={verification_token}"
+    )
+
+    subject = "Verify Your Email Address"
+
+    body = (
+        "Hello,\n\n"
+        "Thank you for creating an account with "
+        f"{settings.APP_NAME}.\n\n"
+        "Please verify your email address by clicking "
+        "the link below:\n\n"
+        f"{verification_url}\n\n"
+        f"This link expires in "
+        f"{settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES} "
+        "minutes.\n\n"
+        "If you did not create this account, "
+        "you can safely ignore this email.\n\n"
+        "Regards,\n"
+        f"{settings.APP_NAME}"
+    )
+
+    send_email(
+        to_email=to_email,
+        subject=subject,
+        body=body,
+    )
