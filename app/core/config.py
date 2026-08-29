@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "CSMBaseAPI"
     APP_VERSION: str = "1.0.0"
+    ENVIRONMENT: str = "development"
     DEBUG: bool = False
 
     HOST: str = "0.0.0.0"
