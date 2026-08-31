@@ -1,6 +1,6 @@
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-
+from app.core.logging import logger
 from app.core.exceptions import AppException
 from app.core.responses import error_response
 
@@ -77,9 +77,29 @@ async def global_exception_handler(
 ):
     """
     Catch all unexpected exceptions.
+
+    The client receives a generic error response while
+    the complete exception and traceback are recorded
+    in the application logs.
     """
+
+    request_id = getattr(
+        request.state,
+        "request_id",
+        "unknown",
+    )
+
+    logger.exception(
+        "Unhandled exception [request_id=%s] %s %s",
+        request_id,
+        request.method,
+        request.url.path,
+    )
 
     return error_response(
         message="Internal server error",
         status_code=500,
+        headers={
+            "X-Request-ID": request_id,
+        },
     )
