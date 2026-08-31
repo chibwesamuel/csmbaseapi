@@ -59,7 +59,7 @@ tags_metadata = [
         ),
     },
     {
-        "name": "Organization",
+        "name": "Organizations",
         "description": (
             "Organization creation and management."
         ),
@@ -68,6 +68,62 @@ tags_metadata = [
         "name": "Organization Members",
         "description": (
             "Manage users inside organizations."
+        ),
+    },
+    {
+        "name": "Organization Invitations",
+        "description": (
+            "Create, retrieve, accept and manage "
+            "organization invitations."
+        ),
+    },
+    {
+        "name": "Projects",
+        "description": (
+            "Create and manage projects within organizations."
+        ),
+    },
+    {
+        "name": "Project Members",
+        "description": (
+            "Manage users assigned to projects."
+        ),
+    },
+    {
+        "name": "Tasks",
+        "description": (
+            "Create and manage tasks within projects."
+        ),
+    },
+    {
+        "name": "Task Comments",
+        "description": (
+            "Create and manage comments on tasks."
+        ),
+    },
+    {
+        "name": "Task Attachments",
+        "description": (
+            "Upload and manage attachments associated "
+            "with tasks."
+        ),
+    },
+    {
+        "name": "Role Permissions",
+        "description": (
+            "Manage permissions assigned to roles."
+        ),
+    },
+    {
+        "name": "User Roles",
+        "description": (
+            "Manage roles assigned to users."
+        ),
+    },
+    {
+        "name": "Notifications",
+        "description": (
+            "Manage and retrieve user notifications."
         ),
     },
     {
@@ -82,12 +138,6 @@ tags_metadata = [
             "System health and API status endpoints."
         ),
     },
-    {
-    "name": "Project Members",
-    "description": (
-        "Manage users assigned to projects."
-    ),
-},
 ]
 
 

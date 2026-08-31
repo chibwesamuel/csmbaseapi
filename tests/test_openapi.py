@@ -20,24 +20,32 @@ def test_openapi_tags(client):
 
     data = response.json()
 
-    tags = [
+    tags = {
         tag["name"]
         for tag in data.get("tags", [])
-    ]
+    }
 
-    expected_tags = [
+    expected_tags = {
         "Authentication",
         "Users",
         "Roles",
         "Permissions",
-        "Organization",
+        "Organizations",
         "Organization Members",
+        "Organization Invitations",
+        "Projects",
+        "Project Members",
+        "Tasks",
+        "Task Comments",
+        "Task Attachments",
+        "Role Permissions",
+        "User Roles",
+        "Notifications",
         "GraphQL",
         "System",
-    ]
+    }
 
-    for tag in expected_tags:
-        assert tag in tags
+    assert tags == expected_tags
 
 def test_openapi_security_scheme(client):
     response = client.get("/openapi.json")
