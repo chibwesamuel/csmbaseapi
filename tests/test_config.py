@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from app.core.config import Settings
 
 
@@ -50,7 +53,7 @@ def test_settings_accept_environment_configuration():
         APP_NAME="TestAPI",
         APP_VERSION="2.0.0",
         ENVIRONMENT="production",
-        DEBUG=True,
+        DEBUG=False,
         HOST="127.0.0.1",
         PORT=9000,
         DATABASE_URL="postgresql://localhost/test",
@@ -74,12 +77,92 @@ def test_settings_accept_environment_configuration():
     )
 
     assert settings.APP_NAME == "TestAPI"
+    assert settings.APP_VERSION == "2.0.0"
     assert settings.ENVIRONMENT == "production"
-    assert settings.DEBUG is True
+    assert settings.DEBUG is False
+    assert settings.HOST == "127.0.0.1"
     assert settings.PORT == 9000
+    assert settings.DATABASE_URL == "postgresql://localhost/test"
     assert settings.REDIS_URL == "redis://localhost:6380/1"
+    assert settings.SECRET_KEY == "test-secret"
+    assert settings.ALGORITHM == "HS256"
+    assert settings.ACCESS_TOKEN_EXPIRE_MINUTES == 15
+    assert settings.REFRESH_TOKEN_EXPIRE_DAYS == 14
+    assert settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES == 20
+    assert settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES == 25
+    assert settings.SMTP_HOST == "smtp.example.com"
     assert settings.SMTP_PORT == 465
+    assert settings.SMTP_USERNAME == "user"
+    assert settings.SMTP_PASSWORD == "password"
+    assert settings.SMTP_FROM_EMAIL == "noreply@example.com"
+    assert settings.SMTP_FROM_NAME == "Test API"
     assert settings.SMTP_USE_TLS is False
+    assert settings.PASSWORD_RESET_URL == "https://example.com/reset"
+    assert settings.EMAIL_VERIFICATION_URL == "https://example.com/verify"
     assert settings.CORS_ORIGINS == (
         "https://example.com,https://admin.example.com"
     )
+
+
+def test_production_rejects_debug():
+    with pytest.raises(
+        ValidationError,
+        match="DEBUG must be False in production",
+    ):
+        Settings(
+            ENVIRONMENT="production",
+            DEBUG=True,
+            DATABASE_URL="postgresql://localhost/test",
+            SECRET_KEY="test-secret",
+            CORS_ORIGINS="https://example.com",
+            PASSWORD_RESET_URL="https://example.com/reset",
+            EMAIL_VERIFICATION_URL="https://example.com/verify",
+        )
+
+
+def test_production_rejects_wildcard_cors():
+    with pytest.raises(
+        ValidationError,
+        match="CORS_ORIGINS must be explicitly configured",
+    ):
+        Settings(
+            ENVIRONMENT="production",
+            DEBUG=False,
+            DATABASE_URL="postgresql://localhost/test",
+            SECRET_KEY="test-secret",
+            CORS_ORIGINS="*",
+            PASSWORD_RESET_URL="https://example.com/reset",
+            EMAIL_VERIFICATION_URL="https://example.com/verify",
+        )
+
+
+def test_production_requires_https_password_reset_url():
+    with pytest.raises(
+        ValidationError,
+        match="PASSWORD_RESET_URL must use HTTPS",
+    ):
+        Settings(
+            ENVIRONMENT="production",
+            DEBUG=False,
+            DATABASE_URL="postgresql://localhost/test",
+            SECRET_KEY="test-secret",
+            CORS_ORIGINS="https://example.com",
+            PASSWORD_RESET_URL="http://example.com/reset",
+            EMAIL_VERIFICATION_URL="https://example.com/verify",
+        )
+
+
+def test_production_requires_https_email_verification_url():
+    with pytest.raises(
+        ValidationError,
+        match="EMAIL_VERIFICATION_URL must use HTTPS",
+    ):
+        Settings(
+            ENVIRONMENT="production",
+            DEBUG=False,
+            DATABASE_URL="postgresql://localhost/test",
+            SECRET_KEY="test-secret",
+            CORS_ORIGINS="https://example.com",
+            PASSWORD_RESET_URL="https://example.com/reset",
+            EMAIL_VERIFICATION_URL="http://example.com/verify",
+        )
