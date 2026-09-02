@@ -1,5 +1,8 @@
 import uuid
 
+from app.models.organization_member import OrganizationMember
+from app.models.role import Role
+
 
 def create_test_organization(client, headers):
     """
@@ -518,7 +521,8 @@ def test_filter_tasks_by_assignee(
         organization["id"],
     )
 
-    # Get current admin user
+    # Get current admin user.
+    # The project creator is automatically added as a project member.
     user_response = client.get(
         "/api/v1/users/me",
         headers=admin_headers,
@@ -527,21 +531,6 @@ def test_filter_tasks_by_assignee(
     assert user_response.status_code == 200
 
     user = user_response.json()
-
-    # Add user as project member first
-    member_response = client.post(
-        (
-            f"/api/v1/organizations/"
-            f"{organization['id']}/projects/"
-            f"{project['id']}/members"
-        ),
-        json={
-            "user_id": user["id"],
-        },
-        headers=admin_headers,
-    )
-
-    assert member_response.status_code in [200, 201]
 
     # Create an unassigned task
     unassigned_response = client.post(
@@ -555,8 +544,6 @@ def test_filter_tasks_by_assignee(
         },
         headers=admin_headers,
     )
-
-    assert unassigned_response.status_code == 201
 
     # Create an assigned task
     assigned_response = client.post(
@@ -767,6 +754,8 @@ def test_user_cannot_access_other_project_tasks(
 def test_create_task_with_non_member_assignee(
     client,
     admin_headers,
+    registered_user,
+    db,
 ):
     """
     Cannot assign a task to someone who is not a project member.
@@ -783,14 +772,25 @@ def test_create_task_with_non_member_assignee(
         organization["id"],
     )
 
-    user_response = client.get(
-        "/api/v1/users/me",
-        headers=admin_headers,
+    # Get an organization member role.
+    member_role = (
+        db.query(Role)
+        .filter(Role.name == "member")
+        .first()
     )
 
-    assert user_response.status_code == 200
+    assert member_role is not None
 
-    user = user_response.json()
+    # Make registered_user an organization member,
+    # but deliberately do not add them to the project.
+    organization_member = OrganizationMember(
+        organization_id=organization["id"],
+        user_id=registered_user.id,
+        role_id=member_role.id,
+    )
+
+    db.add(organization_member)
+    db.commit()
 
     response = client.post(
         (
@@ -800,7 +800,7 @@ def test_create_task_with_non_member_assignee(
         ),
         json={
             "title": "Invalid Assignment",
-            "assigned_to": user["id"],
+            "assigned_to": str(registered_user.id),
         },
         headers=admin_headers,
     )

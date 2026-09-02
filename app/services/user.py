@@ -1,28 +1,24 @@
-from sqlalchemy.orm import Session
 import math
 
-from app.repositories.user import (
-    get_all_users,
-    get_users,
-    count_users,
-    get_user_by_id,
-    get_user_by_email,
-    get_user_by_username,
-    create_user as create_user_repository,
-    update_user as update_user_repository,
-    delete_user as delete_user_repository,
-    update_user_status,
-)
-from app.core.security import hash_password
-from app.schemas.user import UserCreate
+from sqlalchemy.orm import Session
 
-from app.schemas.user import UserUpdate
 from app.core.exceptions import (
     EmailAlreadyRegistered,
     UsernameAlreadyRegistered,
 )
-
-import math
+from app.core.security import hash_password
+from app.repositories.user import (
+    count_users,
+    create_user as create_user_repository,
+    delete_user as delete_user_repository,
+    get_user_by_email,
+    get_user_by_id,
+    get_user_by_username,
+    get_users,
+    update_user as update_user_repository,
+    update_user_status,
+)
+from app.schemas.user import UserCreate, UserUpdate
 
 
 def list_users(
