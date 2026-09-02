@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy.orm import Session
-
+from app.models.project_member import ProjectMember
 from app.models.project import Project
 from app.schemas.project import (
     ProjectCreate,
@@ -30,6 +30,12 @@ def create_project(
 ) -> Project:
     """
     Create a new project inside an organization.
+
+    The project creator is automatically assigned
+    as the project owner.
+
+    Project creation and owner membership are committed
+    as a single transaction.
     """
 
     existing = get_project_by_slug(
@@ -49,12 +55,31 @@ def create_project(
         name=project_data.name,
         slug=project_data.slug,
         description=project_data.description,
+        status=project_data.status,
     )
 
-    return repository_create_project(
-        db,
-        project,
-    )
+    try:
+        project = repository_create_project(
+            db,
+            project,
+        )
+
+        membership = ProjectMember(
+            project_id=project.id,
+            user_id=user_id,
+            role="owner",
+        )
+
+        db.add(membership)
+
+        db.commit()
+        db.refresh(project)
+
+        return project
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 def list_projects(

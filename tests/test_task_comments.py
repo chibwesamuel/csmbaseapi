@@ -226,14 +226,6 @@ def test_create_task_comment(
         organization["id"],
     )
 
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization["id"],
-        project["id"],
-        admin_user,
-    )
-
     task = create_test_task(
         client,
         admin_headers,
@@ -269,14 +261,6 @@ def test_list_task_comments(
         client,
         admin_headers,
         organization["id"],
-    )
-
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization["id"],
-        project["id"],
-        admin_user,
     )
 
     task = create_test_task(
@@ -330,14 +314,6 @@ def test_update_task_comment(
         organization["id"],
     )
 
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization["id"],
-        project["id"],
-        admin_user,
-    )
-
     task = create_test_task(
         client,
         admin_headers,
@@ -388,14 +364,6 @@ def test_delete_task_comment(
         client,
         admin_headers,
         organization["id"],
-    )
-
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization["id"],
-        project["id"],
-        admin_user,
     )
 
     task = create_test_task(
@@ -464,6 +432,7 @@ def test_missing_task_comment(
 
     assert_status(response, 404)
 
+
 def test_task_comments_reject_missing_task(
     client,
     admin_headers,
@@ -527,14 +496,6 @@ def test_task_comments_reject_project_mismatch(
         organization["id"],
     )
 
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization["id"],
-        project_one["id"],
-        admin_user,
-    )
-
     task = create_test_task(
         client,
         admin_headers,
@@ -585,14 +546,6 @@ def test_task_comments_reject_organization_mismatch(
         organization_one["id"],
     )
 
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization_one["id"],
-        project["id"],
-        admin_user,
-    )
-
     task = create_test_task(
         client,
         admin_headers,
@@ -620,10 +573,13 @@ def test_task_comments_reject_organization_mismatch(
 def test_non_project_member_cannot_create_comment(
     client,
     admin_headers,
+    authenticated_headers,
+    registered_user,
+    db,
 ):
     """
-    A user who is not a project member cannot
-    create a comment.
+    A user who belongs to the organization but is not
+    a project member cannot create a comment.
     """
 
     organization = create_test_organization(
@@ -644,6 +600,51 @@ def test_non_project_member_cannot_create_comment(
         project["id"],
     )
 
+    # ---------------------------------------------------------
+    # Make the authenticated user an organization member.
+    #
+    # Do NOT add the user to the project. The purpose of this
+    # test is to verify project-level membership enforcement.
+    # ---------------------------------------------------------
+
+    organization_role = (
+        db.query(Role)
+        .filter(
+            Role.name == "Admin"
+        )
+        .first()
+    )
+
+
+    assert organization_role is not None
+
+    organization_member = OrganizationMember(
+        organization_id=organization["id"],
+        user_id=registered_user.id,
+        role_id=organization_role.id,
+    )
+
+    db.add(organization_member)
+    db.commit()
+
+    # ---------------------------------------------------------
+    # Give the user the task permissions required to reach
+    # the project-membership authorization check.
+    #
+    # The user is intentionally NOT added to the project.
+    # ---------------------------------------------------------
+
+    assign_task_permissions(
+        db,
+        registered_user.id,
+    )
+
+
+    # ---------------------------------------------------------
+    # Attempt to create a comment as an organization member
+    # who is NOT a project member.
+    # ---------------------------------------------------------
+
     response = client.post(
         (
             f"/api/v1/organizations/"
@@ -654,7 +655,7 @@ def test_non_project_member_cannot_create_comment(
         json={
             "content": "Unauthorized comment",
         },
-        headers=admin_headers,
+        headers=authenticated_headers,
     )
 
     assert_status(response, 400)
@@ -683,14 +684,6 @@ def test_user_cannot_update_another_users_comment(
         client,
         admin_headers,
         organization["id"],
-    )
-
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization["id"],
-        project["id"],
-        admin_user,
     )
 
     task = create_test_task(
@@ -766,10 +759,6 @@ def test_user_cannot_update_another_users_comment(
 
     # ---------------------------------------------------------
     # Retrieve the Admin organization role.
-    #
-    # The user needs an organization membership because
-    # get_current_organization() checks organization_members
-    # before the request can reach the comment service.
     # ---------------------------------------------------------
 
     organization_role = (
@@ -893,14 +882,6 @@ def test_user_cannot_delete_another_users_comment(
         client,
         admin_headers,
         organization["id"],
-    )
-
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization["id"],
-        project["id"],
-        admin_user,
     )
 
     task = create_test_task(
@@ -1056,14 +1037,6 @@ def test_comment_cannot_be_accessed_through_another_task(
         client,
         admin_headers,
         organization["id"],
-    )
-
-    add_admin_to_project(
-        client,
-        admin_headers,
-        organization["id"],
-        project["id"],
-        admin_user,
     )
 
     task_one = create_test_task(

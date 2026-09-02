@@ -411,9 +411,19 @@ def test_cannot_remove_last_project_owner(
         organization["id"],
     )
 
-    user = create_test_user(
-        client,
+    # The project creator is automatically assigned
+    # as the project owner.
+    #
+    # admin_headers belong to the project creator,
+    # so we need to obtain that user's ID.
+    response = client.get(
+        "/api/v1/auth/me",
+        headers=admin_headers,
     )
+
+    assert response.status_code == 200
+
+    current_user = response.json()
 
     url = (
         f"/api/v1/organizations/"
@@ -421,19 +431,8 @@ def test_cannot_remove_last_project_owner(
         f"{project['id']}/members"
     )
 
-    create_response = client.post(
-        url,
-        json={
-            "user_id": user["id"],
-            "role": "owner",
-        },
-        headers=admin_headers,
-    )
-
-    assert create_response.status_code == 201
-
     response = client.delete(
-        f"{url}/{user['id']}",
+        f"{url}/{current_user['id']}",
         headers=admin_headers,
     )
 
@@ -512,3 +511,38 @@ def test_project_members_reject_missing_project(
     assert response.json()["message"] == (
         "Project not found"
     )
+
+def test_project_creator_is_automatically_project_owner(
+    client,
+    admin_headers,
+):
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization["id"],
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/members"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] == 1
+
+    owner = data["members"][0]
+
+    assert owner["user_id"] == project["created_by"]
+    assert owner["role"] == "owner"
