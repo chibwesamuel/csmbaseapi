@@ -1,31 +1,30 @@
 from fastapi import (
     FastAPI,
-    Request,
     HTTPException,
+    Request,
 )
 
-from fastapi.middleware.cors import CORSMiddleware
-
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from sqlalchemy import text
 
 from strawberry.fastapi import GraphQLRouter
 
+from app.api.v1.router import api_router
 from app.core.config import settings
-
-from app.core.exceptions import AppException
-
 from app.core.exception_handlers import (
     app_exception_handler,
+    global_exception_handler,
     http_exception_handler,
     validation_exception_handler,
-    global_exception_handler,
 )
-
-from app.middleware.request_logging import RequestLoggingMiddleware
-
-from app.api.v1.router import api_router
-
+from app.core.exceptions import AppException
+from app.core.redis import redis_is_available
+from app.database.session import engine
 from app.graphql.schema import schema
+from app.middleware.request_logging import RequestLoggingMiddleware
 
 
 # ==========================================================
@@ -198,6 +197,7 @@ Authorization is enforced through FastAPI dependencies.
     },
 )
 
+
 # ==========================================================
 # CORS
 # ==========================================================
@@ -215,6 +215,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ==========================================================
 # Middleware
@@ -234,18 +235,15 @@ app.add_exception_handler(
     app_exception_handler,
 )
 
-
 app.add_exception_handler(
     HTTPException,
     http_exception_handler,
 )
 
-
 app.add_exception_handler(
     RequestValidationError,
     validation_exception_handler,
 )
-
 
 app.add_exception_handler(
     Exception,
@@ -271,7 +269,6 @@ graphql_app = GraphQLRouter(
     schema,
 )
 
-
 app.include_router(
     graphql_app,
     prefix="/graphql",
@@ -283,7 +280,6 @@ app.include_router(
 # System Endpoints
 # ==========================================================
 
-
 @app.get(
     "/",
     tags=["System"],
@@ -293,14 +289,12 @@ app.include_router(
     ),
 )
 def root():
-
     return {
         "application": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "status": "running",
         "message": "Welcome to CSMBaseAPI 🚀!",
     }
-
 
 
 @app.get(
@@ -312,9 +306,63 @@ def root():
     ),
 )
 def health_check():
-
     return {
         "status": "healthy",
         "application": settings.APP_NAME,
         "version": settings.APP_VERSION,
     }
+
+
+@app.get(
+    "/ready",
+    tags=["System"],
+    summary="Readiness check",
+    description=(
+        "Checks whether CSMBaseAPI can reach its required "
+        "PostgreSQL and Redis dependencies."
+    ),
+)
+def readiness_check():
+    database_available = False
+
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+            database_available = True
+
+    except Exception:
+        database_available = False
+
+    redis_available = redis_is_available()
+
+    if database_available and redis_available:
+        return {
+            "status": "ready",
+            "application": settings.APP_NAME,
+            "version": settings.APP_VERSION,
+            "dependencies": {
+                "database": "available",
+                "redis": "available",
+            },
+        }
+
+    return JSONResponse(
+        status_code=503,
+        content={
+            "status": "not_ready",
+            "application": settings.APP_NAME,
+            "version": settings.APP_VERSION,
+            "dependencies": {
+                "database": (
+                    "available"
+                    if database_available
+                    else "unavailable"
+                ),
+                "redis": (
+                    "available"
+                    if redis_available
+                    else "unavailable"
+                ),
+            },
+        },
+    )
