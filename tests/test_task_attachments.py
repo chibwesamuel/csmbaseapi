@@ -134,14 +134,6 @@ def setup_task(
         organization["id"],
     )
 
-    add_project_member(
-        client,
-        admin_headers,
-        organization["id"],
-        project["id"],
-        admin_user_id,
-    )
-
     task = create_test_task(
         client,
         admin_headers,
@@ -150,7 +142,6 @@ def setup_task(
     )
 
     return organization, project, task
-
 
 def test_create_task_attachment(
     client,

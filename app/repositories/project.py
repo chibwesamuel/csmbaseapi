@@ -117,18 +117,15 @@ def create_project(
     project: Project,
 ) -> Project:
     """
-    Create a project.
+    Add a project to the current transaction.
+
+    The caller is responsible for committing.
     """
 
     db.add(project)
-    db.commit()
-    db.refresh(project)
+    db.flush()
 
-    return get_project(
-        db,
-        project.organization_id,
-        project.id,
-    )
+    return project
 
 
 def update_project(

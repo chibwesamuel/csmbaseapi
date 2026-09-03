@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -53,6 +54,36 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def validate_environment(self):
+        """
+        Enforce production-safe configuration.
+        """
+
+        if self.ENVIRONMENT == "production":
+            if self.DEBUG:
+                raise ValueError(
+                    "DEBUG must be False in production."
+                )
+
+            if self.CORS_ORIGINS.strip() == "*":
+                raise ValueError(
+                    "CORS_ORIGINS must be explicitly configured "
+                    "in production."
+                )
+
+            if not self.PASSWORD_RESET_URL.startswith("https://"):
+                raise ValueError(
+                    "PASSWORD_RESET_URL must use HTTPS in production."
+                )
+
+            if not self.EMAIL_VERIFICATION_URL.startswith("https://"):
+                raise ValueError(
+                    "EMAIL_VERIFICATION_URL must use HTTPS in production."
+                )
+
+        return self
 
 
 @lru_cache
