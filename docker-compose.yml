@@ -1,3 +1,5 @@
+name: csmbaseapi-dev
+
 services:
 
   api:

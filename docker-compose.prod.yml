@@ -1,3 +1,5 @@
+name: csmbaseapi-prod
+
 services:
 
   api:
@@ -134,8 +136,16 @@ services:
 
 volumes:
   postgres_data_prod:
+    external: true
+    name: csmbaseapi_postgres_data_prod
+
   redis_data_prod:
+    external: true
+    name: csmbaseapi_redis_data_prod
+
   attachments_data_prod:
+    external: true
+    name: csmbaseapi_attachments_data_prod
 
 
 networks:
