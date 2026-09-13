@@ -515,6 +515,7 @@ def test_password_reset_old_password_cannot_login(
         status.HTTP_401_UNAUTHORIZED
     )
 
+
 def test_request_password_reset_sends_email(
     db,
     normal_user,
@@ -530,7 +531,36 @@ def test_request_password_reset_sends_email(
         email=normal_user.email,
     )
 
+    assert raw_token is not None
+
     mock_password_reset_email.assert_called_once_with(
         to_email=normal_user.email,
         reset_token=raw_token,
+    )
+
+
+def test_forgot_password_does_not_expose_reset_token(
+    client,
+    normal_user,
+):
+    """
+    The forgot-password endpoint must never expose the
+    raw password reset token in its HTTP response.
+    """
+
+    response = client.post(
+        "/api/v1/auth/forgot-password",
+        json={
+            "email": normal_user.email,
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "reset_token" not in data
+    assert data["message"] == (
+        "If an account exists for this email, "
+        "a password reset link has been generated."
     )

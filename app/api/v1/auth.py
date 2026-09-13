@@ -327,26 +327,17 @@ def forgot_password(
     or not the supplied email belongs to an existing user.
     """
 
-    reset_token = request_password_reset(
+    request_password_reset(
         db=db,
         email=request.email,
     )
 
-    response = {
+    return {
         "message": (
             "If an account exists for this email, "
             "a password reset link has been generated."
         ),
     }
-
-    # Temporary development behavior.
-    #
-    # Until an email delivery service is implemented, expose
-    # the generated token so the reset flow can be tested.
-    if reset_token:
-        response["reset_token"] = reset_token
-
-    return response
 
 
 @router.post(

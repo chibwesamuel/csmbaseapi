@@ -146,28 +146,3 @@ def reset_password(
     db.commit()
 
     return True
-
-@patch(
-    "app.services.password_reset.send_password_reset_email"
-)
-def test_request_password_reset_sends_email(
-    mock_send_password_reset_email,
-    db,
-    normal_user,
-):
-    """
-    A password reset request for an existing user should
-    send the generated reset token through the email service.
-    """
-
-    raw_token = request_password_reset(
-        db=db,
-        email=normal_user.email,
-    )
-
-    assert raw_token is not None
-
-    mock_send_password_reset_email.assert_called_once_with(
-        to_email=normal_user.email,
-        reset_token=raw_token,
-    )
