@@ -124,6 +124,27 @@ class BadRequest(AppException):
         )
 
 
+class RateLimitExceeded(AppException):
+    """
+    Raised when a client exceeds the configured
+    request rate limit.
+    """
+
+    def __init__(
+        self,
+        retry_after: int,
+        message: str = (
+            "Too many requests. Please try again later."
+        ),
+    ):
+        super().__init__(
+            message=message,
+            status_code=429,
+            headers={
+                "Retry-After": str(retry_after),
+            },
+        )
+
 # ==========================================================
 # Backward-compatible exception helpers
 # ==========================================================

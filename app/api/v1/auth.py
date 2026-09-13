@@ -1,9 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.core.security import create_access_token
+
 from app.database.session import get_db
 
 from app.dependencies.auth import get_current_user
+from app.dependencies.rate_limit import rate_limit
 
 from app.models.user import User
 
@@ -20,15 +24,6 @@ from app.schemas.password_reset import (
     PasswordResetConfirm,
 )
 
-from app.services.password import (
-    change_user_password,
-)
-
-from app.services.password_reset import (
-    request_password_reset,
-    reset_password,
-)
-
 from app.schemas.refresh_token import (
     RefreshRequest,
     LogoutRequest,
@@ -39,12 +34,19 @@ from app.services.auth import (
     login_user,
 )
 
+from app.services.password import (
+    change_user_password,
+)
+
+from app.services.password_reset import (
+    request_password_reset,
+    reset_password,
+)
+
 from app.services.refresh_token import (
     rotate_user_refresh_token,
     revoke_refresh_token,
 )
-
-from app.core.security import create_access_token
 
 
 router = APIRouter(
@@ -72,11 +74,23 @@ router = APIRouter(
                 "already exists"
             ),
         },
+        429: {
+            "description": (
+                "Too many registration attempts"
+            ),
+        },
     },
 )
 def register(
     user: UserCreate,
     db: Session = Depends(get_db),
+    _: None = Depends(
+        rate_limit(
+            "register",
+            settings.REGISTER_RATE_LIMIT,
+            settings.REGISTER_RATE_LIMIT_WINDOW,
+        )
+    ),
 ):
     """
     Register a new user.
@@ -103,11 +117,23 @@ def register(
         401: {
             "description": "Invalid email or password",
         },
+        429: {
+            "description": (
+                "Too many login attempts"
+            ),
+        },
     },
 )
 def login(
     credentials: UserLogin,
     db: Session = Depends(get_db),
+    _: None = Depends(
+        rate_limit(
+            "login",
+            settings.LOGIN_RATE_LIMIT,
+            settings.LOGIN_RATE_LIMIT_WINDOW,
+        )
+    ),
 ):
     """
     Authenticate a user and return JWT tokens.
@@ -175,11 +201,23 @@ def logout(
         401: {
             "description": "Invalid or revoked refresh token",
         },
+        429: {
+            "description": (
+                "Too many refresh attempts"
+            ),
+        },
     },
 )
 def refresh_access_token(
     request: RefreshRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(
+        rate_limit(
+            "refresh",
+            settings.REFRESH_RATE_LIMIT,
+            settings.REFRESH_RATE_LIMIT_WINDOW,
+        )
+    ),
 ):
     """
     Rotate a refresh token and issue new access credentials.
@@ -209,6 +247,7 @@ def refresh_access_token(
         refresh_token=new_refresh_token,
         token_type="bearer",
     )
+
 
 @router.post(
     "/change-password",
@@ -250,6 +289,7 @@ def change_password(
         "message": "Password changed successfully",
     }
 
+
 @router.post(
     "/forgot-password",
     summary="Request a password reset",
@@ -262,11 +302,23 @@ def change_password(
         200: {
             "description": "Password reset request processed",
         },
+        429: {
+            "description": (
+                "Too many password reset requests"
+            ),
+        },
     },
 )
 def forgot_password(
     request: PasswordResetRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(
+        rate_limit(
+            "forgot-password",
+            settings.FORGOT_PASSWORD_RATE_LIMIT,
+            settings.FORGOT_PASSWORD_RATE_LIMIT_WINDOW,
+        )
+    ),
 ):
     """
     Request a password reset.
@@ -314,11 +366,23 @@ def forgot_password(
                 "password reset token"
             ),
         },
+        429: {
+            "description": (
+                "Too many password reset attempts"
+            ),
+        },
     },
 )
 def reset_password_endpoint(
     request: PasswordResetConfirm,
     db: Session = Depends(get_db),
+    _: None = Depends(
+        rate_limit(
+            "reset-password",
+            settings.RESET_PASSWORD_RATE_LIMIT,
+            settings.RESET_PASSWORD_RATE_LIMIT_WINDOW,
+        )
+    ),
 ):
     """
     Reset a user's password using a password reset token.
@@ -339,6 +403,7 @@ def reset_password_endpoint(
     return {
         "message": "Password reset successfully",
     }
+
 
 @router.get(
     "/me",
