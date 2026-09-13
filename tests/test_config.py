@@ -27,6 +27,21 @@ def test_settings_defaults():
     assert settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES == 30
     assert settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES == 30
 
+    assert settings.LOGIN_RATE_LIMIT == 5
+    assert settings.LOGIN_RATE_LIMIT_WINDOW == 60
+
+    assert settings.REGISTER_RATE_LIMIT == 5
+    assert settings.REGISTER_RATE_LIMIT_WINDOW == 60
+
+    assert settings.FORGOT_PASSWORD_RATE_LIMIT == 5
+    assert settings.FORGOT_PASSWORD_RATE_LIMIT_WINDOW == 60
+
+    assert settings.RESET_PASSWORD_RATE_LIMIT == 5
+    assert settings.RESET_PASSWORD_RATE_LIMIT_WINDOW == 60
+
+    assert settings.REFRESH_RATE_LIMIT == 10
+    assert settings.REFRESH_RATE_LIMIT_WINDOW == 60
+
     assert settings.SMTP_HOST == "localhost"
     assert settings.SMTP_PORT == 587
     assert settings.SMTP_USERNAME == ""
@@ -81,6 +96,20 @@ def test_settings_accept_environment_configuration():
         STORAGE_BACKEND="local",
         STORAGE_LOCAL_PATH="/tmp/csmbaseapi/uploads",
         MAX_ATTACHMENT_SIZE=5242880,
+        LOGIN_RATE_LIMIT=10,
+        LOGIN_RATE_LIMIT_WINDOW=120,
+
+        REGISTER_RATE_LIMIT=8,
+        REGISTER_RATE_LIMIT_WINDOW=90,
+
+        FORGOT_PASSWORD_RATE_LIMIT=6,
+        FORGOT_PASSWORD_RATE_LIMIT_WINDOW=120,
+
+        RESET_PASSWORD_RATE_LIMIT=6,
+        RESET_PASSWORD_RATE_LIMIT_WINDOW=120,
+
+        REFRESH_RATE_LIMIT=20,
+        REFRESH_RATE_LIMIT_WINDOW=120,
     )
 
     assert settings.APP_NAME == "TestAPI"
@@ -112,6 +141,21 @@ def test_settings_accept_environment_configuration():
     assert settings.STORAGE_BACKEND == "local"
     assert settings.STORAGE_LOCAL_PATH == "/tmp/csmbaseapi/uploads"
     assert settings.MAX_ATTACHMENT_SIZE == 5242880
+
+    assert settings.LOGIN_RATE_LIMIT == 10
+    assert settings.LOGIN_RATE_LIMIT_WINDOW == 120
+
+    assert settings.REGISTER_RATE_LIMIT == 8
+    assert settings.REGISTER_RATE_LIMIT_WINDOW == 90
+
+    assert settings.FORGOT_PASSWORD_RATE_LIMIT == 6
+    assert settings.FORGOT_PASSWORD_RATE_LIMIT_WINDOW == 120
+
+    assert settings.RESET_PASSWORD_RATE_LIMIT == 6
+    assert settings.RESET_PASSWORD_RATE_LIMIT_WINDOW == 120
+
+    assert settings.REFRESH_RATE_LIMIT == 20
+    assert settings.REFRESH_RATE_LIMIT_WINDOW == 120
 
 
 def test_production_rejects_debug():

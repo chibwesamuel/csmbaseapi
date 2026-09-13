@@ -4,6 +4,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.redis import get_redis
 from app.main import app
 
 from app.database.session import SessionLocal
@@ -67,7 +68,21 @@ def clean_test_database():
 
     After clearing the database, restore the application's
     required seed data so tests start from a valid baseline.
+
+    Rate-limit Redis keys are also cleared because Redis state
+    persists between tests while the database is reset.
     """
+
+    # -----------------------------------------------------
+    # Reset authentication rate-limit state
+    # -----------------------------------------------------
+
+    redis = get_redis()
+
+    for key in redis.scan_iter(
+        match="rate_limit:*",
+    ):
+        redis.delete(key)
 
     tables = [
         "task_attachments",
