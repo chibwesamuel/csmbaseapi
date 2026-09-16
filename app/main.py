@@ -26,6 +26,9 @@ from app.core.redis import redis_is_available
 from app.database.session import engine
 from app.graphql.schema import schema
 from app.middleware.request_logging import RequestLoggingMiddleware
+from app.middleware.security_headers import (
+    SecurityHeadersMiddleware,
+)
 
 
 # ==========================================================
@@ -235,6 +238,11 @@ app.add_middleware(
 # ==========================================================
 # Middleware
 # ==========================================================
+
+# Security Headers
+app.add_middleware(
+    SecurityHeadersMiddleware,
+)
 
 app.add_middleware(
     RequestLoggingMiddleware,
