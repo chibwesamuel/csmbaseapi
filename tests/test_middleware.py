@@ -12,7 +12,12 @@ def test_request_logging_middleware(client):
         "app.middleware.request_logging.logger.info"
     ) as mock_logger:
 
-        response = client.get("/")
+        response = client.get(
+            "/",
+            headers={
+                "host": "localhost",
+            },
+        )
 
         assert response.status_code == 200
 
@@ -37,3 +42,25 @@ def test_request_logging_middleware(client):
         assert args[3] == 200
         assert args[4] >= 0
         assert args[5] == request_id
+
+
+def test_trusted_host_allows_localhost(client):
+    response = client.get(
+        "/",
+        headers={
+            "host": "localhost",
+        },
+    )
+
+    assert response.status_code == 200
+
+
+def test_trusted_host_rejects_untrusted_host(client):
+    response = client.get(
+        "/",
+        headers={
+            "host": "malicious.example.com",
+        },
+    )
+
+    assert response.status_code == 400

@@ -6,6 +6,7 @@ from fastapi import (
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from sqlalchemy import text
@@ -197,6 +198,20 @@ Authorization is enforced through FastAPI dependencies.
     },
 )
 
+# ==========================================================
+# Trusted Hosts
+# ==========================================================
+
+allowed_hosts = [
+    host.strip()
+    for host in settings.ALLOWED_HOSTS.split(",")
+    if host.strip()
+]
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=allowed_hosts,
+)
 
 # ==========================================================
 # CORS
