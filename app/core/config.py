@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "*"
 
+    # Hosts
+    ALLOWED_HOSTS: str = "localhost,127.0.0.1"
+
     # Storage
     STORAGE_BACKEND: str = "local"
     STORAGE_LOCAL_PATH: str = "./uploads"
@@ -114,6 +117,12 @@ class Settings(BaseSettings):
             if self.CORS_ORIGINS.strip() == "*":
                 raise ValueError(
                     "CORS_ORIGINS must be explicitly configured "
+                    "in production."
+                )
+
+            if not self.ALLOWED_HOSTS.strip():
+                raise ValueError(
+                    "ALLOWED_HOSTS must be explicitly configured "
                     "in production."
                 )
 

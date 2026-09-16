@@ -66,6 +66,10 @@ def test_settings_defaults():
     assert settings.STORAGE_LOCAL_PATH == "./uploads"
     assert settings.MAX_ATTACHMENT_SIZE == 10 * 1024 * 1024
 
+    assert settings.ALLOWED_HOSTS == (
+        "localhost,127.0.0.1"
+    )
+
 
 def test_settings_accept_environment_configuration():
     settings = Settings(
@@ -110,6 +114,8 @@ def test_settings_accept_environment_configuration():
 
         REFRESH_RATE_LIMIT=20,
         REFRESH_RATE_LIMIT_WINDOW=120,
+
+        ALLOWED_HOSTS="api.example.com,admin.example.com",
     )
 
     assert settings.APP_NAME == "TestAPI"
@@ -156,6 +162,10 @@ def test_settings_accept_environment_configuration():
 
     assert settings.REFRESH_RATE_LIMIT == 20
     assert settings.REFRESH_RATE_LIMIT_WINDOW == 120
+
+    assert settings.ALLOWED_HOSTS == (
+        "api.example.com,admin.example.com"
+    )
 
 
 def test_production_rejects_debug():
@@ -219,4 +229,21 @@ def test_production_requires_https_email_verification_url():
             CORS_ORIGINS="https://example.com",
             PASSWORD_RESET_URL="https://example.com/reset",
             EMAIL_VERIFICATION_URL="http://example.com/verify",
+        )
+
+
+def test_production_rejects_empty_allowed_hosts():
+    with pytest.raises(
+        ValidationError,
+        match="ALLOWED_HOSTS must be explicitly configured",
+    ):
+        Settings(
+            ENVIRONMENT="production",
+            DEBUG=False,
+            DATABASE_URL="postgresql://localhost/test",
+            SECRET_KEY="test-secret",
+            CORS_ORIGINS="https://example.com",
+            ALLOWED_HOSTS="",
+            PASSWORD_RESET_URL="https://example.com/reset",
+            EMAIL_VERIFICATION_URL="https://example.com/verify",
         )
