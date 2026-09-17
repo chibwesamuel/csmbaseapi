@@ -84,3 +84,67 @@ def test_storage_rejects_path_traversal(tmp_path):
             "../../outside.txt",
             io.BytesIO(b"malicious"),
         )
+
+
+def test_save_allows_file_at_max_size(tmp_path):
+    storage = LocalStorage(tmp_path)
+
+    content = b"x" * 10
+
+    bytes_written = storage.save(
+        "documents/exact-size.txt",
+        io.BytesIO(content),
+        max_size=10,
+    )
+
+    assert bytes_written == 10
+    assert storage.exists(
+        "documents/exact-size.txt"
+    )
+
+    with storage.open(
+        "documents/exact-size.txt"
+    ) as stored_file:
+        assert stored_file.read() == content
+
+
+def test_save_rejects_file_exceeding_max_size(tmp_path):
+    storage = LocalStorage(tmp_path)
+
+    content = b"x" * 11
+
+    with pytest.raises(
+        ValueError,
+        match="File exceeds maximum allowed size",
+    ):
+        storage.save(
+            "documents/too-large.txt",
+            io.BytesIO(content),
+            max_size=10,
+        )
+
+    assert not storage.exists(
+        "documents/too-large.txt"
+    )
+
+
+def test_save_removes_partial_file_when_max_size_exceeded(
+    tmp_path,
+):
+    storage = LocalStorage(tmp_path)
+
+    content = b"x" * 2048
+
+    with pytest.raises(
+        ValueError,
+        match="File exceeds maximum allowed size",
+    ):
+        storage.save(
+            "documents/partial.txt",
+            io.BytesIO(content),
+            max_size=1024,
+        )
+
+    assert not storage.exists(
+        "documents/partial.txt"
+    )
