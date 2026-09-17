@@ -154,7 +154,10 @@ def client():
 
     app.dependency_overrides[get_db] = override_get_db
 
-    client = TestClient(app)
+    client = TestClient(
+        app,
+        base_url="http://localhost",
+    )
 
     yield client
 

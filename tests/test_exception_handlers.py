@@ -21,6 +21,7 @@ def test_global_exception_handler_returns_generic_error():
 
     test_client = TestClient(
         app,
+        base_url="http://localhost",
         raise_server_exceptions=False,
     )
 

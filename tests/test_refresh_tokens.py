@@ -1,5 +1,7 @@
 from fastapi import status
 
+from app.models.user import User
+
 
 def register_and_login(client, unique_user):
     """
@@ -280,4 +282,50 @@ def test_rotated_refresh_token_cannot_be_reused(
 
     assert third_refresh.status_code == (
         status.HTTP_401_UNAUTHORIZED
+    )
+
+
+def test_inactive_user_cannot_refresh_token(
+    client,
+    unique_user,
+    db,
+):
+    """
+    An inactive user must not be able to use an existing
+    refresh token to obtain new access credentials.
+    """
+
+    tokens = register_and_login(
+        client,
+        unique_user,
+    )
+
+    user = (
+        db.query(User)
+        .filter(
+            User.email == unique_user["email"]
+        )
+        .first()
+    )
+
+    assert user is not None
+
+    user.is_active = False
+
+    db.commit()
+    db.refresh(user)
+
+    response = client.post(
+        "/api/v1/auth/refresh",
+        json={
+            "refresh_token": tokens["refresh_token"],
+        },
+    )
+
+    assert response.status_code == (
+        status.HTTP_401_UNAUTHORIZED
+    )
+
+    assert response.json()["message"] == (
+        "Invalid refresh token"
     )
