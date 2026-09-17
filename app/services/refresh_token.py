@@ -129,6 +129,10 @@ def rotate_user_refresh_token(
     if stored_token.expires_at < datetime.now(timezone.utc):
         return None
 
+    # Reject inactive users.
+    if not stored_token.user.is_active and not stored_token.user.is_superuser:
+        return None
+
     # Generate replacement refresh token.
     new_raw_token = generate_refresh_token()
 
