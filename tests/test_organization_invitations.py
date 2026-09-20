@@ -573,3 +573,69 @@ def test_cancel_invitation_success(
     assert invitation_model.status == (
         InvitationStatus.CANCELLED
     )
+
+
+def test_cancel_invitation_rejects_another_organization(
+    client,
+    authenticated_headers,
+    test_role,
+    db,
+):
+    """
+    An organization admin must not be able to cancel an
+    invitation belonging to another organization.
+    """
+
+    organization_one = create_test_organization(
+        client,
+        authenticated_headers,
+    )
+
+    organization_two = create_test_organization(
+        client,
+        authenticated_headers,
+    )
+
+    invitation_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_two['id']}/invitations"
+        ),
+        json={
+            "email": (
+                f"crossorg{uuid.uuid4().hex[:8]}"
+                "@example.com"
+            ),
+            "role_id": str(test_role.id),
+        },
+        headers=authenticated_headers,
+    )
+
+    assert invitation_response.status_code == 201
+
+    invitation = invitation_response.json()
+
+    response = client.delete(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_one['id']}/invitations/"
+            f"{invitation['id']}"
+        ),
+        headers=authenticated_headers,
+    )
+
+    assert response.status_code == 400
+
+    invitation_model = (
+        db.query(OrganizationInvitation)
+        .filter(
+            OrganizationInvitation.id
+            == invitation["id"],
+        )
+        .first()
+    )
+
+    assert invitation_model is not None
+    assert invitation_model.status == (
+        InvitationStatus.PENDING
+    )

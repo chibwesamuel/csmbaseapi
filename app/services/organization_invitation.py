@@ -224,6 +224,7 @@ def accept_invitation(
 
 def cancel_invitation(
     db: Session,
+    organization_id: UUID,
     invitation_id: UUID,
 ) -> bool:
     """
@@ -232,6 +233,7 @@ def cancel_invitation(
 
     invitation = get_invitation_by_id(
         db,
+        organization_id,
         invitation_id,
     )
 
@@ -260,6 +262,7 @@ def cancel_invitation(
 
 def remove_invitation(
     db: Session,
+    organization_id: UUID,
     invitation_id: UUID,
 ) -> bool:
     """
@@ -268,6 +271,7 @@ def remove_invitation(
 
     invitation = get_invitation_by_id(
         db,
+        organization_id,
         invitation_id,
     )
 
