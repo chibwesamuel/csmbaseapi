@@ -1,5 +1,10 @@
 import uuid
 
+from app.models.organization_member import OrganizationMember
+from app.models.permission import Permission
+from app.models.role import Role
+from app.models.user import User
+
 
 def create_test_organization(client, headers):
     """
@@ -21,6 +26,115 @@ def create_test_organization(client, headers):
     assert response.status_code == 201
 
     return response.json()
+
+
+def create_project_permission_user(
+    client,
+    db,
+    organization_id,
+    permission_name,
+):
+    """
+    Create an active, verified organization member with
+    exactly the requested project permission.
+    """
+
+    unique = uuid.uuid4().hex[:8]
+    password = "Password123!"
+
+    payload = {
+        "email": f"project_test_{unique}@example.com",
+        "username": f"project_test_{unique}",
+        "password": password,
+        "first_name": "Project",
+        "last_name": "Tester",
+    }
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json=payload,
+    )
+
+    assert response.status_code == 201
+
+    user_data = response.json()
+
+    user = (
+        db.query(User)
+        .filter(
+            User.id == user_data["id"]
+        )
+        .first()
+    )
+
+    assert user is not None
+
+    user.is_active = True
+    user.is_verified = True
+
+    permission = (
+        db.query(Permission)
+        .filter(
+            Permission.name == permission_name
+        )
+        .first()
+    )
+
+    assert permission is not None
+
+    role = Role(
+        name=f"Project Tester {unique}",
+        description="Project authorization test role",
+    )
+
+    role.permissions.append(permission)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    user.roles.append(role)
+    db.commit()
+    db.refresh(user)
+
+    organization_role = (
+        db.query(Role)
+        .filter(
+            Role.name == "member"
+        )
+        .first()
+    )
+
+    assert organization_role is not None
+
+    membership = OrganizationMember(
+        organization_id=organization_id,
+        user_id=user.id,
+        role_id=organization_role.id,
+    )
+
+    db.add(membership)
+    db.commit()
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": payload["email"],
+            "password": password,
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    return {
+        "user": user,
+        "headers": {
+            "Authorization": (
+                f"Bearer "
+                f"{login_response.json()['access_token']}"
+            )
+        },
+    }
 
 
 def test_create_project(client, admin_headers):
@@ -222,6 +336,322 @@ def test_normal_user_cannot_create_project(
     )
 
     assert response.status_code == 403
+
+
+def test_project_list_requires_view_permission(
+    client,
+    db,
+    admin_headers,
+):
+    """
+    Listing projects requires projects.view.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    tester = create_project_permission_user(
+        client,
+        db,
+        organization["id"],
+        "projects.create",
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects"
+        ),
+        headers=tester["headers"],
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Permission 'projects.view' required"
+    )
+
+
+def test_project_get_requires_view_permission(
+    client,
+    db,
+    admin_headers,
+):
+    """
+    Retrieving a project requires projects.view.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects"
+        ),
+        json={
+            "name": "Protected Project",
+            "slug": "protected-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert project_response.status_code == 201
+
+    project = project_response.json()
+
+    tester = create_project_permission_user(
+        client,
+        db,
+        organization["id"],
+        "projects.create",
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}"
+        ),
+        headers=tester["headers"],
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Permission 'projects.view' required"
+    )
+
+
+def test_project_update_requires_update_permission(
+    client,
+    db,
+    admin_headers,
+):
+    """
+    Updating a project requires projects.update.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects"
+        ),
+        json={
+            "name": "Protected Project",
+            "slug": "protected-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert project_response.status_code == 201
+
+    project = project_response.json()
+
+    tester = create_project_permission_user(
+        client,
+        db,
+        organization["id"],
+        "projects.view",
+    )
+
+    response = client.patch(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}"
+        ),
+        json={
+            "name": "Unauthorized Update",
+        },
+        headers=tester["headers"],
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Permission 'projects.update' required"
+    )
+
+
+def test_project_delete_requires_delete_permission(
+    client,
+    db,
+    admin_headers,
+):
+    """
+    Deleting a project requires projects.delete.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects"
+        ),
+        json={
+            "name": "Protected Project",
+            "slug": "protected-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert project_response.status_code == 201
+
+    project = project_response.json()
+
+    tester = create_project_permission_user(
+        client,
+        db,
+        organization["id"],
+        "projects.view",
+    )
+
+    response = client.delete(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}"
+        ),
+        headers=tester["headers"],
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Permission 'projects.delete' required"
+    )
+
+
+def test_project_update_rejects_project_from_another_organization(
+    client,
+    admin_headers,
+):
+    """
+    A project belonging to another organization must not be
+    accessible through the requested organization.
+    """
+
+    organization_one = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    organization_two = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_one['id']}/projects"
+        ),
+        json={
+            "name": "Organization One Project",
+            "slug": "organization-one-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert project_response.status_code == 201
+
+    project = project_response.json()
+
+    response = client.patch(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_two['id']}/projects/"
+            f"{project['id']}"
+        ),
+        json={
+            "name": "Unauthorized Cross-Tenant Update",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )
+
+
+def test_project_delete_rejects_project_from_another_organization(
+    client,
+    admin_headers,
+):
+    """
+    A project belonging to another organization must not be
+    deleted through another organization's endpoint.
+    """
+
+    organization_one = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    organization_two = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_one['id']}/projects"
+        ),
+        json={
+            "name": "Organization One Project",
+            "slug": "organization-one-project",
+        },
+        headers=admin_headers,
+    )
+
+    assert project_response.status_code == 201
+
+    project = project_response.json()
+
+    response = client.delete(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_two['id']}/projects/"
+            f"{project['id']}"
+        ),
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["message"] == (
+        "Project not found"
+    )
+
+    # Confirm the project still exists under its real organization.
+    verify_response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization_one['id']}/projects/"
+            f"{project['id']}"
+        ),
+        headers=admin_headers,
+    )
+
+    assert verify_response.status_code == 200
+
 
 def test_project_rejects_missing_organization(
     client,
