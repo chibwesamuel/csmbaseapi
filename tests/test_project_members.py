@@ -1,9 +1,10 @@
 import uuid
 
+from app.models.organization_member import OrganizationMember
+from app.models.role import Role
 
 
 def create_test_organization(client, headers):
-
     unique = uuid.uuid4().hex[:8]
 
     response = client.post(
@@ -21,13 +22,11 @@ def create_test_organization(client, headers):
     return response.json()
 
 
-
 def create_test_project(
     client,
     headers,
     organization_id,
 ):
-
     unique = uuid.uuid4().hex[:8]
 
     response = client.post(
@@ -44,9 +43,7 @@ def create_test_project(
     return response.json()
 
 
-
 def create_test_user(client):
-
     unique = uuid.uuid4().hex[:8]
 
     response = client.post(
@@ -65,12 +62,10 @@ def create_test_user(client):
     return response.json()
 
 
-
-def test_add_project_member(
+def create_test_project_context(
     client,
     admin_headers,
 ):
-
     organization = create_test_organization(
         client,
         admin_headers,
@@ -82,17 +77,143 @@ def test_add_project_member(
         organization["id"],
     )
 
-    user = create_test_user(
-        client,
+    return organization, project
+
+
+def project_members_url(
+    organization_id,
+    project_id,
+):
+    return (
+        f"/api/v1/organizations/"
+        f"{organization_id}/projects/"
+        f"{project_id}/members"
     )
 
 
+def create_project_member(
+    client,
+    admin_headers,
+    organization_id,
+    project_id,
+    user_id,
+    role="contributor",
+):
+    url = project_members_url(
+        organization_id,
+        project_id,
+    )
+
     response = client.post(
-        (
-            f"/api/v1/organizations/"
-            f"{organization['id']}/projects/"
-            f"{project['id']}/members"
-        ),
+        url,
+        json={
+            "user_id": user_id,
+            "role": role,
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 201
+
+    return response.json()
+
+
+def add_user_to_organization(
+    db,
+    organization_id,
+    user_id,
+):
+    organization_role = (
+        db.query(Role)
+        .filter(
+            Role.name == "Admin"
+        )
+        .first()
+    )
+
+    assert organization_role is not None
+
+    organization_member = OrganizationMember(
+        organization_id=organization_id,
+        user_id=user_id,
+        role_id=organization_role.id,
+    )
+
+    db.add(organization_member)
+    db.commit()
+    db.refresh(organization_member)
+
+    return organization_member
+
+
+def test_add_project_member(
+    client,
+    admin_headers,
+    db,
+):
+    organization, project = create_test_project_context(
+        client,
+        admin_headers,
+    )
+
+    user = create_test_user(client)
+
+    add_user_to_organization(
+        db,
+        organization["id"],
+        user["id"],
+    )
+
+    data = create_project_member(
+        client,
+        admin_headers,
+        organization["id"],
+        project["id"],
+        user["id"],
+    )
+
+    assert data["project_id"] == project["id"]
+    assert data["user_id"] == user["id"]
+    assert data["role"] == "contributor"
+
+
+def test_cannot_add_user_from_another_organization_to_project(
+    client,
+    admin_headers,
+    db,
+):
+    """
+    A user belonging to another organization must not be
+    added to a project in this organization.
+    """
+
+    organization_one, project = (
+        create_test_project_context(
+            client,
+            admin_headers,
+        )
+    )
+
+    organization_two = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    user = create_test_user(client)
+
+    add_user_to_organization(
+        db,
+        organization_two["id"],
+        user["id"],
+    )
+
+    url = project_members_url(
+        organization_one["id"],
+        project["id"],
+    )
+
+    response = client.post(
+        url,
         json={
             "user_id": user["id"],
             "role": "contributor",
@@ -100,96 +221,75 @@ def test_add_project_member(
         headers=admin_headers,
     )
 
+    assert response.status_code == 400
 
-    assert response.status_code == 201
-
-    data = response.json()
-
-    assert data["project_id"] == project["id"]
-    assert data["user_id"] == user["id"]
-    assert data["role"] == "contributor"
-
+    assert response.json()["message"] == (
+        "User does not belong to the project organization"
+    )
 
 
 def test_duplicate_project_member(
     client,
     admin_headers,
+    db,
 ):
-
-    organization = create_test_organization(
+    organization, project = create_test_project_context(
         client,
         admin_headers,
     )
 
-    project = create_test_project(
+    user = create_test_user(client)
+
+    add_user_to_organization(
+        db,
+        organization["id"],
+        user["id"],
+    )
+
+    create_project_member(
         client,
         admin_headers,
         organization["id"],
+        project["id"],
+        user["id"],
     )
 
-    user = create_test_user(
-        client,
+    url = project_members_url(
+        organization["id"],
+        project["id"],
     )
 
-
-    url = (
-        f"/api/v1/organizations/"
-        f"{organization['id']}/projects/"
-        f"{project['id']}/members"
-    )
-
-
-    payload = {
-        "user_id": user["id"],
-        "role": "contributor",
-    }
-
-
-    first = client.post(
+    response = client.post(
         url,
-        json=payload,
+        json={
+            "user_id": user["id"],
+            "role": "contributor",
+        },
         headers=admin_headers,
     )
 
-    assert first.status_code == 201
-
-
-    second = client.post(
-        url,
-        json=payload,
-        headers=admin_headers,
-    )
-
-    assert second.status_code == 400
-
+    assert response.status_code == 400
 
 
 def test_list_project_members(
     client,
     admin_headers,
+    db,
 ):
-
-    organization = create_test_organization(
+    organization, project = create_test_project_context(
         client,
         admin_headers,
     )
 
-    project = create_test_project(
-        client,
-        admin_headers,
+    url = project_members_url(
         organization["id"],
+        project["id"],
     )
-
 
     response = client.get(
-        (
-            f"/api/v1/organizations/"
-            f"{organization['id']}/projects/"
-            f"{project['id']}/members"
-        ),
+        url,
         headers=admin_headers,
     )
-
 
     assert response.status_code == 200
 
@@ -199,75 +299,63 @@ def test_list_project_members(
     assert "total" in data
 
 
-
 def test_get_missing_project_member(
     client,
     admin_headers,
+    db,
 ):
-
-    organization = create_test_organization(
+    organization, project = create_test_project_context(
         client,
         admin_headers,
     )
 
-    project = create_test_project(
-        client,
-        admin_headers,
+    url = project_members_url(
         organization["id"],
+        project["id"],
     )
-
 
     response = client.get(
-        (
-            f"/api/v1/organizations/"
-            f"{organization['id']}/projects/"
-            f"{project['id']}/members/{uuid.uuid4()}"
-        ),
+        f"{url}/{uuid.uuid4()}",
         headers=admin_headers,
     )
 
-
     assert response.status_code == 404
+
 
 def test_get_project_member(
     client,
     admin_headers,
+    db,
 ):
     """
     Test retrieving a specific project member.
     """
 
-    organization = create_test_organization(
+    organization, project = create_test_project_context(
         client,
         admin_headers,
     )
 
-    project = create_test_project(
+    user = create_test_user(client)
+
+    add_user_to_organization(
+        db,
+        organization["id"],
+        user["id"],
+    )
+
+    create_project_member(
         client,
         admin_headers,
         organization["id"],
+        project["id"],
+        user["id"],
     )
 
-    user = create_test_user(
-        client,
+    url = project_members_url(
+        organization["id"],
+        project["id"],
     )
-
-    url = (
-        f"/api/v1/organizations/"
-        f"{organization['id']}/projects/"
-        f"{project['id']}/members"
-    )
-
-    create_response = client.post(
-        url,
-        json={
-            "user_id": user["id"],
-            "role": "contributor",
-        },
-        headers=admin_headers,
-    )
-
-    assert create_response.status_code == 201
 
     response = client.get(
         f"{url}/{user['id']}",
@@ -282,46 +370,40 @@ def test_get_project_member(
     assert data["role"] == "contributor"
 
 
-
 def test_update_project_member_role(
     client,
     admin_headers,
+    db,
 ):
     """
     Test changing a project member role.
     """
 
-    organization = create_test_organization(
+    organization, project = create_test_project_context(
         client,
         admin_headers,
     )
 
-    project = create_test_project(
+    user = create_test_user(client)
+
+    add_user_to_organization(
+        db,
+        organization["id"],
+        user["id"],
+    )
+
+    create_project_member(
         client,
         admin_headers,
         organization["id"],
+        project["id"],
+        user["id"],
     )
 
-    user = create_test_user(
-        client,
+    url = project_members_url(
+        organization["id"],
+        project["id"],
     )
-
-    url = (
-        f"/api/v1/organizations/"
-        f"{organization['id']}/projects/"
-        f"{project['id']}/members"
-    )
-
-    create_response = client.post(
-        url,
-        json={
-            "user_id": user["id"],
-            "role": "contributor",
-        },
-        headers=admin_headers,
-    )
-
-    assert create_response.status_code == 201
 
     response = client.patch(
         f"{url}/{user['id']}",
@@ -339,46 +421,40 @@ def test_update_project_member_role(
     assert data["role"] == "admin"
 
 
-
 def test_remove_project_member(
     client,
     admin_headers,
+    db,
 ):
     """
     Test removing a project member.
     """
 
-    organization = create_test_organization(
+    organization, project = create_test_project_context(
         client,
         admin_headers,
     )
 
-    project = create_test_project(
+    user = create_test_user(client)
+
+    add_user_to_organization(
+        db,
+        organization["id"],
+        user["id"],
+    )
+
+    create_project_member(
         client,
         admin_headers,
         organization["id"],
+        project["id"],
+        user["id"],
     )
 
-    user = create_test_user(
-        client,
+    url = project_members_url(
+        organization["id"],
+        project["id"],
     )
-
-    url = (
-        f"/api/v1/organizations/"
-        f"{organization['id']}/projects/"
-        f"{project['id']}/members"
-    )
-
-    create_response = client.post(
-        url,
-        json={
-            "user_id": user["id"],
-            "role": "contributor",
-        },
-        headers=admin_headers,
-    )
-
-    assert create_response.status_code == 201
 
     response = client.delete(
         f"{url}/{user['id']}",
@@ -395,20 +471,15 @@ def test_remove_project_member(
 def test_cannot_remove_last_project_owner(
     client,
     admin_headers,
+    db,
 ):
     """
     Ensure the last project owner cannot be removed.
     """
 
-    organization = create_test_organization(
+    organization, project = create_test_project_context(
         client,
         admin_headers,
-    )
-
-    project = create_test_project(
-        client,
-        admin_headers,
-        organization["id"],
     )
 
     # The project creator is automatically assigned
@@ -425,10 +496,9 @@ def test_cannot_remove_last_project_owner(
 
     current_user = response.json()
 
-    url = (
-        f"/api/v1/organizations/"
-        f"{organization['id']}/projects/"
-        f"{project['id']}/members"
+    url = project_members_url(
+        organization["id"],
+        project["id"],
     )
 
     response = client.delete(
@@ -438,23 +508,24 @@ def test_cannot_remove_last_project_owner(
 
     assert response.status_code == 400
 
-    assert (
-        "last owner"
-        in response.json()["message"]
-    )
+    assert "last owner" in response.json()["message"]
+
 
 def test_project_members_reject_project_from_another_organization(
     client,
     admin_headers,
+    db,
 ):
     """
     A project belonging to another organization must
     not be accessible through the requested organization.
     """
 
-    organization_one = create_test_organization(
-        client,
-        admin_headers,
+    organization_one, project = (
+        create_test_project_context(
+            client,
+            admin_headers,
+        )
     )
 
     organization_two = create_test_organization(
@@ -462,18 +533,13 @@ def test_project_members_reject_project_from_another_organization(
         admin_headers,
     )
 
-    project = create_test_project(
-        client,
-        admin_headers,
-        organization_one["id"],
+    url = project_members_url(
+        organization_two["id"],
+        project["id"],
     )
 
     response = client.get(
-        (
-            f"/api/v1/organizations/"
-            f"{organization_two['id']}/projects/"
-            f"{project['id']}/members"
-        ),
+        url,
         headers=admin_headers,
     )
 
@@ -487,6 +553,7 @@ def test_project_members_reject_project_from_another_organization(
 def test_project_members_reject_missing_project(
     client,
     admin_headers,
+    db,
 ):
     """
     A non-existent project must return 404.
@@ -497,12 +564,13 @@ def test_project_members_reject_missing_project(
         admin_headers,
     )
 
+    url = project_members_url(
+        organization["id"],
+        uuid.uuid4(),
+    )
+
     response = client.get(
-        (
-            f"/api/v1/organizations/"
-            f"{organization['id']}/projects/"
-            f"{uuid.uuid4()}/members"
-        ),
+        url,
         headers=admin_headers,
     )
 
@@ -512,27 +580,24 @@ def test_project_members_reject_missing_project(
         "Project not found"
     )
 
+
 def test_project_creator_is_automatically_project_owner(
     client,
     admin_headers,
+    db,
 ):
-    organization = create_test_organization(
+    organization, project = create_test_project_context(
         client,
         admin_headers,
     )
 
-    project = create_test_project(
-        client,
-        admin_headers,
+    url = project_members_url(
         organization["id"],
+        project["id"],
     )
 
     response = client.get(
-        (
-            f"/api/v1/organizations/"
-            f"{organization['id']}/projects/"
-            f"{project['id']}/members"
-        ),
+        url,
         headers=admin_headers,
     )
 

@@ -2,6 +2,10 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.repositories.organization_member import (
+    get_member as get_organization_member,
+)
+
 from app.repositories.project import (
     get_project_by_id,
 )
@@ -24,22 +28,15 @@ def add_project_member(
     db: Session,
     project_id: UUID,
     user_id: UUID,
-    role: str = "contributor",
+    role="contributor",
 ):
-    """
-    Add a user to a project.
-    """
-
     project = get_project_by_id(
         db,
         project_id,
     )
 
     if not project:
-        raise ValueError(
-            "Project not found"
-        )
-
+        raise ValueError("Project not found")
 
     user = get_user_by_id(
         db,
@@ -47,10 +44,18 @@ def add_project_member(
     )
 
     if not user:
-        raise ValueError(
-            "User not found"
-        )
+        raise ValueError("User not found")
 
+    organization_membership = get_organization_member(
+        db,
+        project.organization_id,
+        user_id,
+    )
+
+    if not organization_membership:
+        raise ValueError(
+            "User does not belong to the project organization"
+        )
 
     existing = get_project_member(
         db,
@@ -62,7 +67,6 @@ def add_project_member(
         raise ValueError(
             "User is already a project member"
         )
-
 
     return create_project_member(
         db,
@@ -134,8 +138,7 @@ def change_member_role(
             "Project membership not found"
         )
 
-
-    # Prevent removing the project owner
+    # Prevent removing the project owner.
     if (
         membership.role == "owner"
         and role != "owner"
@@ -149,7 +152,6 @@ def change_member_role(
             raise ValueError(
                 "A project must have at least one owner"
             )
-
 
     return update_project_member(
         db,
@@ -178,9 +180,7 @@ def remove_member(
             "Project membership not found"
         )
 
-
     if membership.role == "owner":
-
         owners = count_project_owners(
             db,
             project_id,
@@ -190,7 +190,6 @@ def remove_member(
             raise ValueError(
                 "Cannot remove the last owner of a project"
             )
-
 
     return delete_project_member(
         db,
