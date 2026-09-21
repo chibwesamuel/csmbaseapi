@@ -1,7 +1,9 @@
 import uuid
 
 from app.models.organization_member import OrganizationMember
+from app.models.permission import Permission
 from app.models.role import Role
+from app.models.user import User
 
 
 def create_test_organization(client, headers):
@@ -371,6 +373,335 @@ def test_normal_user_cannot_create_task(
     )
 
     assert response.status_code == 403
+
+
+def create_task_permission_user(
+    client,
+    db,
+    organization_id,
+    permission_name,
+):
+    """
+    Create an active organization member with exactly
+    the requested task permission.
+    """
+
+    unique = uuid.uuid4().hex[:8]
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"taskperm{unique}@example.com",
+            "username": f"taskperm{unique}",
+            "password": "password123",
+            "first_name": "Task",
+            "last_name": "Permission",
+        },
+    )
+
+    assert response.status_code == 201
+
+    user = response.json()
+
+    user_model = (
+        db.query(User)
+        .filter(User.id == user["id"])
+        .first()
+    )
+
+    assert user_model is not None
+
+    user_model.is_active = True
+    user_model.is_verified = True
+
+    db.commit()
+    db.refresh(user_model)
+
+    permission = (
+        db.query(Permission)
+        .filter(Permission.name == permission_name)
+        .first()
+    )
+
+    assert permission is not None
+
+    role = Role(
+        name=f"task-{permission_name}-{unique}",
+        description="Task authorization test role",
+    )
+
+    role.permissions.append(permission)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    user_model.roles.append(role)
+    db.commit()
+    db.refresh(user_model)
+
+    member_role = (
+        db.query(Role)
+        .filter(Role.name == "member")
+        .first()
+    )
+
+    assert member_role is not None
+
+    organization_member = OrganizationMember(
+        organization_id=organization_id,
+        user_id=user["id"],
+        role_id=member_role.id,
+    )
+
+    db.add(organization_member)
+    db.commit()
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": user["email"],
+            "password": "password123",
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    return user, headers
+
+
+def test_task_list_requires_view_permission(
+    client,
+    admin_headers,
+    db,
+):
+    """
+    Listing tasks requires tasks.view permission.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization["id"],
+    )
+
+    _, headers = create_task_permission_user(
+        client,
+        db,
+        organization["id"],
+        "tasks.create",
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks"
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Permission 'tasks.view' required"
+    )
+
+
+def test_task_get_requires_view_permission(
+    client,
+    admin_headers,
+    db,
+):
+    """
+    Getting a task requires tasks.view permission.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization["id"],
+    )
+
+    task_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks"
+        ),
+        json={
+            "title": "Protected Task",
+        },
+        headers=admin_headers,
+    )
+
+    assert task_response.status_code == 201
+
+    task = task_response.json()
+
+    _, headers = create_task_permission_user(
+        client,
+        db,
+        organization["id"],
+        "tasks.create",
+    )
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks/"
+            f"{task['id']}"
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Permission 'tasks.view' required"
+    )
+
+
+def test_task_update_requires_update_permission(
+    client,
+    admin_headers,
+    db,
+):
+    """
+    Updating a task requires tasks.update permission.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization["id"],
+    )
+
+    task_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks"
+        ),
+        json={
+            "title": "Original Task",
+        },
+        headers=admin_headers,
+    )
+
+    assert task_response.status_code == 201
+
+    task = task_response.json()
+
+    _, headers = create_task_permission_user(
+        client,
+        db,
+        organization["id"],
+        "tasks.view",
+    )
+
+    response = client.patch(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks/"
+            f"{task['id']}"
+        ),
+        json={
+            "title": "Unauthorized Update",
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Permission 'tasks.update' required"
+    )
+
+
+def test_task_delete_requires_delete_permission(
+    client,
+    admin_headers,
+    db,
+):
+    """
+    Deleting a task requires tasks.delete permission.
+    """
+
+    organization = create_test_organization(
+        client,
+        admin_headers,
+    )
+
+    project = create_test_project(
+        client,
+        admin_headers,
+        organization["id"],
+    )
+
+    task_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks"
+        ),
+        json={
+            "title": "Protected Task",
+        },
+        headers=admin_headers,
+    )
+
+    assert task_response.status_code == 201
+
+    task = task_response.json()
+
+    _, headers = create_task_permission_user(
+        client,
+        db,
+        organization["id"],
+        "tasks.view",
+    )
+
+    response = client.delete(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks/"
+            f"{task['id']}"
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Permission 'tasks.delete' required"
+    )
+
 
 def test_filter_tasks_by_status(
     client,
