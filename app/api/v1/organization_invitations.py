@@ -209,6 +209,7 @@ def delete_organization_invitation(
 
         cancel_invitation(
             db,
+            organization_id,
             invitation_id,
         )
 

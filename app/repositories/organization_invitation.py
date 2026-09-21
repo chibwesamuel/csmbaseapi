@@ -25,6 +25,7 @@ def create_invitation(
 
 def get_invitation_by_id(
     db: Session,
+    organization_id: UUID,
     invitation_id: UUID,
 ) -> OrganizationInvitation | None:
     """
@@ -45,7 +46,9 @@ def get_invitation_by_id(
             ),
         )
         .filter(
-            OrganizationInvitation.id == invitation_id
+            OrganizationInvitation.organization_id
+            == organization_id,
+            OrganizationInvitation.id == invitation_id,
         )
         .first()
     )
