@@ -728,6 +728,492 @@ def test_non_member_cannot_upload_attachment(
         "Permission 'projects.members.manage' required"
     )
 
+
+def test_user_without_view_permission_cannot_list_attachments(
+    client,
+    admin_headers,
+    admin_user_id,
+    db,
+):
+    """
+    A project member without projects.view cannot
+    list task attachments.
+    """
+
+    organization, project, task = setup_task(
+        client,
+        admin_headers,
+        admin_user_id,
+    )
+
+    create_attachment(
+        client,
+        admin_headers,
+        organization["id"],
+        project["id"],
+        task["id"],
+    )
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": (
+                f"listattachment{uuid.uuid4().hex[:8]}"
+                "@example.com"
+            ),
+            "username": (
+                f"listattachment{uuid.uuid4().hex[:8]}"
+            ),
+            "password": "password123",
+            "first_name": "Attachment",
+            "last_name": "Lister",
+        },
+    )
+
+    assert_status(response, 201)
+
+    other_user = response.json()
+
+    from app.models.user import User
+
+    other_user_model = (
+        db.query(User)
+        .filter(
+            User.id == other_user["id"]
+        )
+        .first()
+    )
+
+    assert other_user_model is not None
+
+    other_user_model.is_active = True
+    other_user_model.is_verified = True
+
+    db.commit()
+    db.refresh(other_user_model)
+
+    from app.models.permission import Permission
+    from app.models.role import Role
+
+    permission = (
+        db.query(Permission)
+        .filter(
+            Permission.name == "projects.members.manage"
+        )
+        .first()
+    )
+
+    assert permission is not None
+
+    role = Role(
+        name=f"Attachment List Tester {uuid.uuid4().hex[:8]}",
+        description="Attachment list authorization test role",
+    )
+
+    role.permissions.append(permission)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    other_user_model.roles.append(role)
+    db.commit()
+    db.refresh(other_user_model)
+
+    from app.models.organization_member import OrganizationMember
+
+    organization_role = (
+        db.query(Role)
+        .filter(
+            Role.name == "member"
+        )
+        .first()
+    )
+
+    assert organization_role is not None
+
+    organization_member = OrganizationMember(
+        organization_id=organization["id"],
+        user_id=other_user["id"],
+        role_id=organization_role.id,
+    )
+
+    db.add(organization_member)
+    db.commit()
+
+    member_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/members"
+        ),
+        json={
+            "user_id": other_user["id"],
+            "role": "contributor",
+        },
+        headers=admin_headers,
+    )
+
+    assert_status(member_response, 201)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": other_user["email"],
+            "password": "password123",
+        },
+    )
+
+    assert_status(login_response, 200)
+
+    other_headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks/"
+            f"{task['id']}/attachments"
+        ),
+        headers=other_headers,
+    )
+
+    assert_status(response, 403)
+
+    assert response.json()["message"] == (
+        "Permission 'projects.view' required"
+    )
+
+
+def test_user_without_view_permission_cannot_get_attachment(
+    client,
+    admin_headers,
+    admin_user_id,
+    db,
+):
+    """
+    A project member without projects.view cannot
+    retrieve task attachment metadata.
+    """
+
+    organization, project, task = setup_task(
+        client,
+        admin_headers,
+        admin_user_id,
+    )
+
+    attachment, _ = create_attachment(
+        client,
+        admin_headers,
+        organization["id"],
+        project["id"],
+        task["id"],
+    )
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": (
+                f"getattachment{uuid.uuid4().hex[:8]}"
+                "@example.com"
+            ),
+            "username": (
+                f"getattachment{uuid.uuid4().hex[:8]}"
+            ),
+            "password": "password123",
+            "first_name": "Attachment",
+            "last_name": "Getter",
+        },
+    )
+
+    assert_status(response, 201)
+
+    other_user = response.json()
+
+    from app.models.user import User
+
+    other_user_model = (
+        db.query(User)
+        .filter(
+            User.id == other_user["id"]
+        )
+        .first()
+    )
+
+    assert other_user_model is not None
+
+    other_user_model.is_active = True
+    other_user_model.is_verified = True
+
+    db.commit()
+    db.refresh(other_user_model)
+
+    from app.models.permission import Permission
+    from app.models.role import Role
+
+    permission = (
+        db.query(Permission)
+        .filter(
+            Permission.name == "projects.members.manage"
+        )
+        .first()
+    )
+
+    assert permission is not None
+
+    role = Role(
+        name=f"Attachment Get Tester {uuid.uuid4().hex[:8]}",
+        description="Attachment get authorization test role",
+    )
+
+    role.permissions.append(permission)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    other_user_model.roles.append(role)
+    db.commit()
+    db.refresh(other_user_model)
+
+    from app.models.organization_member import OrganizationMember
+
+    organization_role = (
+        db.query(Role)
+        .filter(
+            Role.name == "member"
+        )
+        .first()
+    )
+
+    assert organization_role is not None
+
+    organization_member = OrganizationMember(
+        organization_id=organization["id"],
+        user_id=other_user["id"],
+        role_id=organization_role.id,
+    )
+
+    db.add(organization_member)
+    db.commit()
+
+    member_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/members"
+        ),
+        json={
+            "user_id": other_user["id"],
+            "role": "contributor",
+        },
+        headers=admin_headers,
+    )
+
+    assert_status(member_response, 201)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": other_user["email"],
+            "password": "password123",
+        },
+    )
+
+    assert_status(login_response, 200)
+
+    other_headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    response = client.get(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks/"
+            f"{task['id']}/attachments/"
+            f"{attachment['id']}"
+        ),
+        headers=other_headers,
+    )
+
+    assert_status(response, 403)
+
+    assert response.json()["message"] == (
+        "Permission 'projects.view' required"
+    )
+
+
+def test_user_without_manage_permission_cannot_delete_attachment(
+    client,
+    admin_headers,
+    admin_user_id,
+    db,
+):
+    """
+    A project member without projects.members.manage cannot
+    delete a task attachment.
+    """
+
+    organization, project, task = setup_task(
+        client,
+        admin_headers,
+        admin_user_id,
+    )
+
+    attachment, _ = create_attachment(
+        client,
+        admin_headers,
+        organization["id"],
+        project["id"],
+        task["id"],
+    )
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": (
+                f"deleteattachment{uuid.uuid4().hex[:8]}"
+                "@example.com"
+            ),
+            "username": (
+                f"deleteattachment{uuid.uuid4().hex[:8]}"
+            ),
+            "password": "password123",
+            "first_name": "Attachment",
+            "last_name": "Deleter",
+        },
+    )
+
+    assert_status(response, 201)
+
+    other_user = response.json()
+
+    from app.models.user import User
+
+    other_user_model = (
+        db.query(User)
+        .filter(
+            User.id == other_user["id"]
+        )
+        .first()
+    )
+
+    assert other_user_model is not None
+
+    other_user_model.is_active = True
+    other_user_model.is_verified = True
+
+    db.commit()
+    db.refresh(other_user_model)
+
+    from app.models.permission import Permission
+    from app.models.role import Role
+
+    permission = (
+        db.query(Permission)
+        .filter(
+            Permission.name == "projects.view"
+        )
+        .first()
+    )
+
+    assert permission is not None
+
+    role = Role(
+        name=f"Attachment Delete Tester {uuid.uuid4().hex[:8]}",
+        description="Attachment delete authorization test role",
+    )
+
+    role.permissions.append(permission)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    other_user_model.roles.append(role)
+    db.commit()
+    db.refresh(other_user_model)
+
+    from app.models.organization_member import OrganizationMember
+
+    organization_role = (
+        db.query(Role)
+        .filter(
+            Role.name == "member"
+        )
+        .first()
+    )
+
+    assert organization_role is not None
+
+    organization_member = OrganizationMember(
+        organization_id=organization["id"],
+        user_id=other_user["id"],
+        role_id=organization_role.id,
+    )
+
+    db.add(organization_member)
+    db.commit()
+
+    member_response = client.post(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/members"
+        ),
+        json={
+            "user_id": other_user["id"],
+            "role": "contributor",
+        },
+        headers=admin_headers,
+    )
+
+    assert_status(member_response, 201)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": other_user["email"],
+            "password": "password123",
+        },
+    )
+
+    assert_status(login_response, 200)
+
+    other_headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    response = client.delete(
+        (
+            f"/api/v1/organizations/"
+            f"{organization['id']}/projects/"
+            f"{project['id']}/tasks/"
+            f"{task['id']}/attachments/"
+            f"{attachment['id']}"
+        ),
+        headers=other_headers,
+    )
+
+    assert_status(response, 403)
+
+    assert response.json()["message"] == (
+        "Permission 'projects.members.manage' required"
+    )
+
+
 def test_user_without_view_permission_cannot_download_attachment(
     client,
     admin_headers,

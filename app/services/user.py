@@ -1,10 +1,12 @@
 import math
 
 from sqlalchemy.orm import Session
+from app.models.user import User
 
 from app.core.exceptions import (
     EmailAlreadyRegistered,
     UsernameAlreadyRegistered,
+    Forbidden,
 )
 from app.core.security import hash_password
 from app.repositories.user import (
@@ -125,6 +127,7 @@ def update_user(
     db: Session,
     user_id: str,
     user_data: UserUpdate,
+    current_user: User,
 ):
     """
     Update an existing user.
@@ -137,6 +140,14 @@ def update_user(
 
     if not user:
         return None
+
+    if (
+        user_data.is_superuser is not None
+        and not current_user.is_superuser
+    ):
+        raise Forbidden(
+            "Only a superuser can change superuser status"
+        )
 
     # Prevent duplicate email
     if (

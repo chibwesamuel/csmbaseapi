@@ -198,6 +198,7 @@ def update_existing_user(
         db,
         user_id,
         user_data,
+        current_user,
     )
 
     if not user:

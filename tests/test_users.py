@@ -1,5 +1,9 @@
 import uuid
 
+from app.models.permission import Permission
+from app.models.role import Role
+from app.models.user import User
+
 
 def test_create_user(client, admin_headers):
 
@@ -261,3 +265,117 @@ def test_create_duplicate_email(client, admin_headers):
     )
 
     assert second_response.status_code == 400
+
+
+def test_non_superuser_cannot_escalate_to_superuser(
+    client,
+    db,
+):
+    """
+    A non-superuser with users.update permission must not be
+    able to grant themselves superuser privileges.
+    """
+
+    unique = uuid.uuid4().hex[:8]
+
+    # ---------------------------------------------------------
+    # Create a normal user.
+    # ---------------------------------------------------------
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"updater_{unique}@example.com",
+            "username": f"updater_{unique}",
+            "password": "Password123!",
+            "first_name": "Updater",
+            "last_name": "User",
+        },
+    )
+
+    assert response.status_code == 201
+
+    user = (
+        db.query(User)
+        .filter(
+            User.email == f"updater_{unique}@example.com"
+        )
+        .first()
+    )
+
+    assert user is not None
+    assert user.is_superuser is False
+
+    # ---------------------------------------------------------
+    # Create a role with only users.update permission.
+    # ---------------------------------------------------------
+
+    permission = (
+        db.query(Permission)
+        .filter(
+            Permission.name == "users.update"
+        )
+        .first()
+    )
+
+    assert permission is not None
+
+    role = Role(
+        name=f"user-updater-{unique}",
+        description="Test users.update role",
+    )
+
+    role.permissions.append(permission)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    # ---------------------------------------------------------
+    # Assign the limited role to the user.
+    # ---------------------------------------------------------
+
+    user.roles.append(role)
+
+    db.commit()
+    db.refresh(user)
+
+    # Confirm the user is still not a superuser.
+    assert user.is_superuser is False
+
+    # ---------------------------------------------------------
+    # Login as the non-superuser.
+    # ---------------------------------------------------------
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": user.email,
+            "password": "Password123!",
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    # ---------------------------------------------------------
+    # Attempt to grant superuser privileges.
+    # ---------------------------------------------------------
+
+    response = client.put(
+        f"/api/v1/users/{user.id}",
+        json={
+            "is_superuser": True,
+        },
+        headers=headers,
+    )
+
+    # A normal users.update permission must not be sufficient
+    # to grant superuser privileges.
+    assert response.status_code == 403
