@@ -149,6 +149,14 @@ def update_user(
             "Only a superuser can change superuser status"
         )
 
+    if (
+        user_data.is_verified is not None
+        and not current_user.is_superuser
+    ):
+        raise Forbidden(
+            "Only a superuser can change verification status"
+        )
+
     # Prevent duplicate email
     if (
         user_data.email

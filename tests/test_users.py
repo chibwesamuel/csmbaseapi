@@ -379,3 +379,100 @@ def test_non_superuser_cannot_escalate_to_superuser(
     # A normal users.update permission must not be sufficient
     # to grant superuser privileges.
     assert response.status_code == 403
+
+
+def test_non_superuser_cannot_escalate_to_verified(
+    client,
+    db,
+):
+    """
+    A non-superuser with users.update permission must not be
+    able to mark an account as verified.
+    """
+
+    unique = uuid.uuid4().hex[:8]
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"verifier_{unique}@example.com",
+            "username": f"verifier_{unique}",
+            "password": "Password123!",
+            "first_name": "Verifier",
+            "last_name": "User",
+        },
+    )
+
+    assert response.status_code == 201
+
+    user = (
+        db.query(User)
+        .filter(
+            User.email == f"verifier_{unique}@example.com"
+        )
+        .first()
+    )
+
+    assert user is not None
+    assert user.is_verified is False
+
+    permission = (
+        db.query(Permission)
+        .filter(
+            Permission.name == "users.update"
+        )
+        .first()
+    )
+
+    assert permission is not None
+
+    role = Role(
+        name=f"user-verifier-{unique}",
+        description="Test users.update verification role",
+    )
+
+    role.permissions.append(permission)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    user.roles.append(role)
+
+    db.commit()
+    db.refresh(user)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": user.email,
+            "password": "Password123!",
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    response = client.put(
+        f"/api/v1/users/{user.id}",
+        json={
+            "is_verified": True,
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Only a superuser can change verification status"
+    )
+
+    db.refresh(user)
+
+    assert user.is_verified is False
