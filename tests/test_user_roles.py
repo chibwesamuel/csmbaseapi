@@ -1,6 +1,9 @@
 import uuid
 
 from fastapi import status
+from app.models.user import User
+from app.models.permission import Permission
+from app.models.role import Role
 
 
 def test_assign_role(client, admin_headers, db, admin_role):
@@ -275,3 +278,101 @@ def test_normal_user_cannot_list_user_roles(
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_non_superuser_cannot_assign_admin_role(
+    client,
+    db,
+    admin_role,
+):
+    """
+    A non-superuser with users.update must not be able
+    to assign the global Admin role.
+    """
+
+    unique = uuid.uuid4().hex[:8]
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"escalate_{unique}@example.com",
+            "username": f"escalate_{unique}",
+            "password": "Password123!",
+            "first_name": "Escalation",
+            "last_name": "Test",
+        },
+    )
+
+    assert response.status_code == 201
+
+    user_id = response.json()["id"]
+
+    user = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
+
+    assert user is not None
+
+    permission = (
+        db.query(Permission)
+        .filter(
+            Permission.name == "users.update"
+        )
+        .first()
+    )
+
+    assert permission is not None
+
+    role = Role(
+        name=f"user-updater-{unique}",
+        description="Test users.update role",
+    )
+
+    role.permissions.append(permission)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    user.roles.append(role)
+
+    db.commit()
+    db.refresh(user)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": user.email,
+            "password": "Password123!",
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    response = client.post(
+        (
+            f"/api/v1/users/"
+            f"{user_id}/roles/"
+            f"{admin_role.id}"
+        ),
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Only a superuser can assign the Admin role"
+    )
+
+    db.refresh(user)
+
+    assert admin_role not in user.roles
