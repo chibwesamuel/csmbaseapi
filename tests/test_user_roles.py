@@ -483,3 +483,109 @@ def test_non_superuser_cannot_modify_admin_role(
     db.refresh(admin_role)
 
     assert admin_role.name == "Admin"
+
+
+def test_non_superuser_cannot_delete_admin_role(
+    client,
+    db,
+    admin_role,
+):
+    """
+    A non-superuser with roles.delete must not be able
+    to delete the global Admin role.
+    """
+
+    unique = uuid.uuid4().hex[:8]
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"probe_delete_{unique}@example.com",
+            "username": f"probe_delete_{unique}",
+            "password": "Password123!",
+            "first_name": "Probe",
+            "last_name": "Delete",
+        },
+    )
+
+    assert response.status_code == 201
+
+    user_id = response.json()["id"]
+
+    user = (
+        db.query(User)
+        .filter(
+            User.id == user_id
+        )
+        .first()
+    )
+
+    assert user is not None
+
+    roles_delete = (
+        db.query(Permission)
+        .filter(
+            Permission.name == "roles.delete"
+        )
+        .first()
+    )
+
+    users_update = (
+        db.query(Permission)
+        .filter(
+            Permission.name == "users.update"
+        )
+        .first()
+    )
+
+    assert roles_delete is not None
+    assert users_update is not None
+
+    role = Role(
+        name=f"role-deleter-{unique}",
+        description="Test roles.delete role",
+    )
+
+    role.permissions.append(roles_delete)
+    role.permissions.append(users_update)
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    user.roles.append(role)
+
+    db.commit()
+    db.refresh(user)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": user.email,
+            "password": "Password123!",
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    response = client.delete(
+        f"/api/v1/roles/{admin_role.id}",
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+    assert response.json()["message"] == (
+        "Only a superuser can delete the Admin role"
+    )
+
+    db.refresh(admin_role)
+
+    assert admin_role.name == "Admin"

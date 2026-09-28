@@ -167,6 +167,7 @@ def delete_role(
     deleted = delete_existing_role(
         db,
         role_id,
+        current_user,
     )
 
     if not deleted:

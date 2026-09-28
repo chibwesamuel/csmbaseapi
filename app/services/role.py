@@ -142,6 +142,7 @@ def update_existing_role(
 def delete_existing_role(
     db: Session,
     role_id,
+    current_user: User,
 ):
     """
     Delete a role.
@@ -154,6 +155,14 @@ def delete_existing_role(
 
     if not role:
         return False
+
+    if (
+        role.name == "Admin"
+        and not current_user.is_superuser
+    ):
+        raise Forbidden(
+            "Only a superuser can delete the Admin role"
+        )
 
     return delete_role_repository(
         db,
