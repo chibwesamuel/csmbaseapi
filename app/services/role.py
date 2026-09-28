@@ -2,6 +2,9 @@ from math import ceil
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import Forbidden
+from app.models.user import User
+
 from app.repositories.role import (
     count_roles,
     create_role as create_role_repository,
@@ -107,6 +110,7 @@ def update_existing_role(
     db: Session,
     role_id,
     role_data: RoleUpdate,
+    current_user: User,
 ):
     """
     Update an existing role.
@@ -119,6 +123,14 @@ def update_existing_role(
 
     if not role:
         return None
+
+    if (
+        role.name == "Admin"
+        and not current_user.is_superuser
+    ):
+        raise Forbidden(
+            "Only a superuser can modify the Admin role"
+        )
 
     return update_role_repository(
         db,

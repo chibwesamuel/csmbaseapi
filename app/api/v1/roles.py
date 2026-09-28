@@ -142,6 +142,7 @@ def update_role(
         db,
         role_id,
         role_data,
+        current_user,
     )
 
     if role is None:
