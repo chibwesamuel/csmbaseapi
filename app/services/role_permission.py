@@ -3,6 +3,8 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.permission import Permission
+from app.core.exceptions import Forbidden
+from app.models.user import User
 
 from app.repositories.role import (
     get_role_by_id,
@@ -23,6 +25,7 @@ def assign_permission(
     db: Session,
     role_id: UUID,
     permission_id: UUID,
+    current_user: User,
 ) -> Permission:
     """
     Assign a permission to a role.
@@ -48,6 +51,11 @@ def assign_permission(
             "Permission not found"
         )
 
+    if not current_user.is_superuser:
+        raise Forbidden(
+            "Only a superuser can modify role permissions"
+        )
+
     if permission in role.permissions:
         raise ValueError(
             "Permission already assigned to role"
@@ -66,6 +74,7 @@ def revoke_permission(
     db: Session,
     role_id: UUID,
     permission_id: UUID,
+    current_user: User,
 ) -> Permission:
     """
     Remove a permission from a role.
@@ -79,6 +88,11 @@ def revoke_permission(
     if role is None:
         raise ValueError(
             "Role not found"
+        )
+
+    if not current_user.is_superuser:
+        raise Forbidden(
+            "Only a superuser can modify role permissions"
         )
 
     permission = get_permission_by_id(
