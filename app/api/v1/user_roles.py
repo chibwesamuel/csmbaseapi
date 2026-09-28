@@ -9,6 +9,8 @@ from fastapi import (
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import Forbidden
+
 from app.database.session import get_db
 
 from app.dependencies.permissions import (
@@ -53,9 +55,13 @@ def assign_role(
             db,
             user_id,
             role_id,
+            current_user,
         )
 
         return user.roles[-1]
+
+    except Forbidden:
+        raise
 
     except ValueError as error:
 

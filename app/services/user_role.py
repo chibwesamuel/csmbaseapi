@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.role import Role
 from app.models.user import User
+from app.core.exceptions import Forbidden
 
 from app.repositories.role import (
     get_role_by_id,
@@ -24,6 +25,7 @@ def assign_user_role(
     db: Session,
     user_id: UUID,
     role_id: UUID,
+    current_user: User,
 ) -> User:
     """
     Assign a role to a user.
@@ -47,6 +49,14 @@ def assign_user_role(
     if role is None:
         raise ValueError(
             "Role not found"
+        )
+
+    if (
+        role.name == "Admin"
+        and not current_user.is_superuser
+    ):
+        raise Forbidden(
+            "Only a superuser can assign the Admin role"
         )
 
     if role in user.roles:

@@ -19,6 +19,8 @@ from app.dependencies.permissions import (
 
 from app.models.user import User
 
+from app.core.exceptions import Forbidden
+
 from app.services.role_permission import (
     assign_permission,
     revoke_permission,
@@ -81,7 +83,11 @@ def add_role_permission(
             db,
             role_id,
             permission_id,
+            current_user,
         )
+
+    except Forbidden:
+        raise
 
     except ValueError as error:
 
@@ -129,11 +135,15 @@ def remove_role_permission(
             db,
             role_id,
             permission_id,
+            current_user,
         )
 
         return {
             "message": "Permission removed from role successfully"
         }
+
+    except Forbidden:
+        raise
 
     except ValueError as error:
 
