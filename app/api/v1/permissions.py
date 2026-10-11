@@ -148,6 +148,7 @@ def update_permission(
         db,
         permission_id,
         permission_data,
+        current_user,
     )
 
     if permission is None:
@@ -172,6 +173,7 @@ def delete_permission(
     deleted = delete_existing_permission(
         db,
         permission_id,
+        current_user,
     )
 
     if not deleted:

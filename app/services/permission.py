@@ -12,6 +12,10 @@ from app.repositories.permission import (
     update_permission as update_permission_repository,
 )
 
+from app.core.exceptions import Forbidden
+from app.core.system_permissions import SYSTEM_PERMISSION_NAMES
+from app.models.user import User
+
 from app.schemas.permission import (
     PermissionCreate,
     PermissionUpdate,
@@ -107,6 +111,7 @@ def update_existing_permission(
     db: Session,
     permission_id,
     permission_data: PermissionUpdate,
+    current_user: User,
 ):
     """
     Update an existing permission.
@@ -120,6 +125,14 @@ def update_existing_permission(
     if not permission:
         return None
 
+    if (
+        permission.name in SYSTEM_PERMISSION_NAMES
+        and not current_user.is_superuser
+    ):
+        raise Forbidden(
+            "Only a superuser can modify system permissions"
+        )
+
     return update_permission_repository(
         db,
         permission,
@@ -130,6 +143,7 @@ def update_existing_permission(
 def delete_existing_permission(
     db: Session,
     permission_id,
+    current_user: User,
 ):
     """
     Delete an existing permission.
@@ -142,6 +156,14 @@ def delete_existing_permission(
 
     if not permission:
         return False
+
+    if (
+        permission.name in SYSTEM_PERMISSION_NAMES
+        and not current_user.is_superuser
+    ):
+        raise Forbidden(
+            "Only a superuser can delete system permissions"
+        )
 
     return delete_permission_repository(
         db,
