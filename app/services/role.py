@@ -124,12 +124,24 @@ def update_existing_role(
     if not role:
         return None
 
+    # Protect the existing Admin role from modification.
     if (
         role.name == "Admin"
         and not current_user.is_superuser
     ):
         raise Forbidden(
             "Only a superuser can modify the Admin role"
+        )
+
+    # Prevent non-superusers from renaming another role to Admin.
+    if (
+        not current_user.is_superuser
+        and role_data.name is not None
+        and role_data.name.strip().casefold() == "admin"
+        and role.name.casefold() != "admin"
+    ):
+        raise Forbidden(
+            "Only a superuser can assign the Admin role name"
         )
 
     return update_role_repository(

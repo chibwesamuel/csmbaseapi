@@ -1,4 +1,5 @@
 import uuid
+import pytest
 
 from fastapi import status
 from app.models.user import User
@@ -588,4 +589,106 @@ def test_non_superuser_cannot_delete_admin_role(
 
     db.refresh(admin_role)
 
+    assert admin_role.name == "Admin"
+
+def test_non_superuser_cannot_rename_role_to_admin(
+    client,
+    db,
+    admin_role,
+):
+    """
+    A non-superuser with roles.update must not be able
+    to rename an ordinary role to Admin.
+    """
+
+    unique = uuid.uuid4().hex[:8]
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"rename_{unique}@example.com",
+            "username": f"rename_{unique}",
+            "password": "Password123!",
+            "first_name": "Rename",
+            "last_name": "Test",
+        },
+    )
+
+    assert response.status_code == 201
+
+    user = (
+        db.query(User)
+        .filter(User.id == response.json()["id"])
+        .first()
+    )
+
+    assert user is not None
+    assert not user.is_superuser
+
+    roles_update = (
+        db.query(Permission)
+        .filter(Permission.name == "roles.update")
+        .first()
+    )
+
+    users_update = (
+        db.query(Permission)
+        .filter(Permission.name == "users.update")
+        .first()
+    )
+
+    assert roles_update is not None
+    assert users_update is not None
+
+    role = Role(
+        name=f"role-renamer-{unique}",
+        description="Test role renamer",
+    )
+
+    role.permissions.extend([
+        roles_update,
+        users_update,
+    ])
+
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+
+    user.roles.append(role)
+    db.commit()
+    db.refresh(user)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": user.email,
+            "password": "Password123!",
+        },
+    )
+
+    assert login_response.status_code == 200
+
+    headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{login_response.json()['access_token']}"
+        )
+    }
+
+    from app.services.role import update_existing_role
+    from app.schemas.role import RoleUpdate
+    from app.core.exceptions import Forbidden
+
+    with pytest.raises(Forbidden):
+        update_existing_role(
+            db,
+            role.id,
+            RoleUpdate(name="Admin"),
+            user,
+        )
+
+    db.refresh(role)
+    db.refresh(admin_role)
+
+    assert role.name != "Admin"
     assert admin_role.name == "Admin"
