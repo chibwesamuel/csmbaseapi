@@ -229,3 +229,58 @@ def test_normal_user_cannot_access_roles(
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+def test_update_role_to_duplicate_name(
+    client,
+    admin_headers,
+):
+    """
+    Updating a role to another role's name must return 409.
+    """
+
+    first_payload = create_role_payload()
+    second_payload = create_role_payload()
+
+    first = client.post(
+        "/api/v1/roles/",
+        json=first_payload,
+        headers=admin_headers,
+    )
+
+    second = client.post(
+        "/api/v1/roles/",
+        json=second_payload,
+        headers=admin_headers,
+    )
+
+    assert first.status_code == status.HTTP_201_CREATED
+    assert second.status_code == status.HTTP_201_CREATED
+
+    first_role = first.json()
+    second_role = second.json()
+
+    response = client.put(
+        f"/api/v1/roles/{second_role['id']}",
+        json={
+            "name": first_role["name"],
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+
+    assert response.json()["message"] == (
+        "Role already exists"
+    )
+
+    # Verify that the original role name was not changed.
+    unchanged = client.get(
+        f"/api/v1/roles/{second_role['id']}",
+        headers=admin_headers,
+    )
+
+    assert unchanged.status_code == status.HTTP_200_OK
+
+    assert unchanged.json()["name"] == (
+        second_role["name"]
+    )

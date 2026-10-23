@@ -124,6 +124,21 @@ class BadRequest(AppException):
         )
 
 
+class Conflict(AppException):
+    """
+    Raised when a request conflicts with an existing resource.
+    """
+
+    def __init__(
+        self,
+        message: str = "Resource already exists",
+    ):
+        super().__init__(
+            message=message,
+            status_code=409,
+        )
+
+
 class RateLimitExceeded(AppException):
     """
     Raised when a client exceeds the configured

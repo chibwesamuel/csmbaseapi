@@ -2,7 +2,7 @@ from math import ceil
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import Forbidden
+from app.core.exceptions import Conflict, Forbidden
 from app.models.user import User
 
 from app.repositories.role import (
@@ -143,6 +143,18 @@ def update_existing_role(
         raise Forbidden(
             "Only a superuser can assign the Admin role name"
         )
+
+    if role_data.name is not None:
+        existing_role = get_role_by_name(
+            db,
+            role_data.name,
+        )
+
+        if (
+            existing_role is not None
+            and existing_role.id != role.id
+        ):
+            raise Conflict("Role already exists")
 
     return update_role_repository(
         db,
